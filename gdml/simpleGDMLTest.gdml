@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<gdml xmlns:gdml="http://cern.ch/2001/Schemas/GDML" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://service-spi.web.cern.ch/service-spi/app/releases/GDML/schema/gdml.xsd" >
+    
+    <define>
+        <matrix coldim="2" name="AIRRINDEX" values="2.034*eV 1 2.068*eV 1 2.103*eV 1 2.139*eV 1 2.177*eV 1 2.216*eV 1 2.256*eV 1 2.298*eV 1 2.341*eV 1 2.386*eV 1 2.433*eV 1 2.481*eV 1 2.532*eV 1 2.585*eV 1 2.64*eV 1 2.697*eV 1 2.757*eV 1 2.82*eV 1 2.885*eV 1 2.954*eV 1 3.026*eV 1 3.102*eV 1 3.181*eV 1 3.265*eV 1 3.353*eV 1 3.446*eV 1 3.545*eV 1 3.649*eV 1 3.76*eV 1 3.877*eV 1 4.002*eV 1 4.136*eV 1"/>
+        <matrix coldim="2" name="WATERRINDEX" values="2.034*eV 1.3435 2.068*eV 1.344 2.103*eV 1.3445 2.139*eV 1.345 2.177*eV 1.3455 2.216*eV 1.346 2.256*eV 1.3465 2.298*eV 1.347 2.341*eV 1.3475 2.386*eV 1.348 2.433*eV 1.3485 2.481*eV 1.3492 2.532*eV 1.35 2.585*eV 1.3505 2.64*eV 1.351 2.697*eV 1.3518 2.757*eV 1.3522 2.82*eV 1.353 2.885*eV 1.3535 2.954*eV 1.354 3.026*eV 1.3545 3.102*eV 1.355 3.181*eV 1.3555 3.265*eV 1.356 3.353*eV 1.3568 3.446*eV 1.3572 3.545*eV 1.358 3.649*eV 1.3585 3.76*eV 1.359 3.877*eV 1.3595 4.002*eV 1.36 4.136*eV 1.3608"/>
+    </define>
+
+    <materials>
+        <isotope N="14" Z="7" name="N14">
+            <atom unit="g/mole" value="14.0031"/>
+        </isotope>
+        <isotope N="15" Z="7" name="N15">
+            <atom unit="g/mole" value="15.0001"/>
+        </isotope>
+        <element name="Nitrogen">
+            <fraction n="0.99632" ref="N14"/>
+            <fraction n="0.00368" ref="N15"/>
+        </element>
+        <isotope N="16" Z="8" name="O16">
+            <atom unit="g/mole" value="15.9949"/>
+        </isotope>
+        <isotope N="17" Z="8" name="O17">
+            <atom unit="g/mole" value="16.9991"/>
+        </isotope>
+        <isotope N="18" Z="8" name="O18">
+            <atom unit="g/mole" value="17.9992"/>
+        </isotope>
+        <element name="Oxygen">
+            <fraction n="0.99757" ref="O16"/>
+            <fraction n="0.00038" ref="O17"/>
+            <fraction n="0.00205" ref="O18"/>
+        </element>
+        <material name="Air" state="gas">
+            <property name="RINDEX" ref="AIRRINDEX"/>
+            <D unit="g/cm3" value="0.00129"/>
+            <fraction n="0.7" ref="Nitrogen"/>
+            <fraction n="0.3" ref="Oxygen"/>
+        </material>
+        <isotope N="1" Z="1" name="H1">
+            <atom unit="g/mole" value="1.00782503081372"/>
+        </isotope>
+        <isotope N="2" Z="1" name="H2">
+            <atom unit="g/mole" value="2.01410199966617"/>
+        </isotope>
+        <element name="Hydrogen">
+            <fraction n="0.999885" ref="H1"/>
+            <fraction n="0.000115" ref="H2"/>
+        </element>
+        <material name="Water" state="solid">
+            <property name="RINDEX" ref="WATERRINDEX"/>
+            <D unit="g/cm3" value="1"/>
+            <fraction n="0.112097669256382" ref="Hydrogen"/>
+            <fraction n="0.887902330743618" ref="Oxygen"/>
+        </material>
+
+    </materials>
+
+    <solids>
+        <box lunit="mm" name="World" x="100" y="100" z="100"/>
+        <box lunit="mm" name="Bulk" x="20" y="100" z="100"/>
+    </solids>
+
+    <structure>
+        <volume name="Bulk">
+            <materialref ref="Water"/>
+            <solidref ref="Bulk"/>
+         </volume>
+        <volume name="World">
+            <materialref ref="Air"/>
+            <solidref ref="World"/>
+            <physvol name="Bulk">
+                <volumeref ref="Bulk"/>
+                <position name="Bulk_pos" unit="mm" x="0" y="0" z="0"/>
+            </physvol>
+        </volume>
+    </structure>
+
+    <setup name="Default" version="1.0">
+        <world ref="World"/>
+    </setup>
+
+</gdml>

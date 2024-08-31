@@ -1,0 +1,22 @@
+/control/verbose 0
+/tracking/verbose 0
+/run/verbose 0
+# /process/optical/verbose 0
+/control/cout/ignoreThreadsExcept 0
+#
+
+/run/initialize
+/PMTLC/generator/useParticleGun true
+
+# 设置初级粒子为伽马射线
+/gun/particle gamma
+# /gun/particle e-
+
+# 每次事件生成的粒子数
+# /gun/particle/number 1
+
+# 设置每次gamma的能量
+/gun/energy 511 keV
+
+# 设置运行次数
+/run/beamOn 100000

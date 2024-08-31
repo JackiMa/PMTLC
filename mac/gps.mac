@@ -1,0 +1,30 @@
+/control/verbose 0
+/tracking/verbose 0
+/run/verbose 0
+/process/optical/verbose 0
+/control/cout/ignoreThreadsExcept 0
+/run/initialize
+
+# 设置粒子发射器为GPS
+/PMTLC/generator/useParticleGun false
+
+# 设置第一个粒子发射器：质子
+# /gps/source/add 1
+# /gps/source/set 1
+/gps/particle proton
+/gps/ene/type Arb
+/gps/hist/type energy
+/gps/hist/file ../spectrum/proton_spectrum.txt # units in keV
+/gps/hist/inter Lin # linear interpolation
+/run/beamOn 1000
+# /gps/source/intensity 10 # 设置质子的抽样权重为10
+
+# # 设置第二个粒子发射器：电子
+# /gps/source/add 1
+# /gps/source/set 2
+# /gps/particle e-
+# /gps/ene/type Arb
+# /gps/hist/type energy
+# /gps/hist/file ../spectrum/electron_spectrum.txt # units in keV
+# /gps/hist/inter Lin
+# /gps/source/intensity 1 # 设置电子的抽样权重为1

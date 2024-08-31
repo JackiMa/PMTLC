@@ -1,0 +1,10 @@
+# 设置初级粒子为光子
+/particle/select opticalphoton
+# 设置每次光子的波长 单位eV, 2.25eV对应551nm
+/gun/energy 2.25 eV
+
+# 每次事件生成的粒子数
+/gun/particle/number 1E6
+
+# 设置运行次数
+/run/beamOn 10
