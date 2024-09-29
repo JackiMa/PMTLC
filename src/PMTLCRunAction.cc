@@ -55,20 +55,33 @@ PMTLCRunAction::PMTLCRunAction(PMTLCPrimaryGeneratorAction *prim)
   analysisManager->SetVerboseLevel(1);
   analysisManager->SetNtupleMerging(true);
 
-  // Ntuple-ID = 0
-  analysisManager->CreateNtuple("Spectrum", "Spectrum");
-  analysisManager->CreateNtupleDColumn("Source Spectrum");
-  analysisManager->CreateNtupleDColumn("Edep in Crystal");
-  analysisManager->FinishNtuple();
-
 
   // Creating histograms for the spectra
+  gID_H1_sc_wl = 0;
   analysisManager->CreateH1("ScintillationWavelength", "Scintillation Wavelength in Crystal", 600, 200.0, 800.0);
+  
+  gID_H1_ch_wl = 1;
   analysisManager->CreateH1("CherenkovLightWavelength", "CherenkovLight Wavelength in Crystal", 600, 200.0, 800.0);
+  
+  gID_H1_PMT_wl = 2;
   analysisManager->CreateH1("PhotonHitatPhotoncathodeWavelength", "Wavelength of Light Hit at Photoncathode", 600, 200.0, 800.0);
+  
+  gID_H1_sc_ed = 3;
+  analysisManager->CreateH1("EnergyDepositionInScintillator", "Energy Deposition in Scintillator", 1000, 0.0, 1);
+
+  gID_H1_PMT_LC = 4;
+  analysisManager->CreateH1("LightCollectionAtPMT", "Light Collectiopn", 500, 0.0, 1000);
+  
+  gID_H1_photon_posY0 = 5;
   analysisManager->CreateH1("PhotonPosition_Y=0", "Photon Position Y in [-0.5, 0.5", 100, -0.5 * g_worldX, 0.5 * g_worldX);
+
+  gID_H1_photon_posYX = 6;
   analysisManager->CreateH1("PhotonPosition_Y=X", "Photon Position X=Y in [-0.5, 0.5]", 100, -sqrt(2)*0.5 * g_worldX, sqrt(2)*0.5 * g_worldX);
+
+  gID_H2_source_pos = 0;
   analysisManager->CreateH2("SourcePosition", "Source Position", 100, -0.5 * g_worldX, 0.5 * g_worldX, 100, -0.5 * g_worldY, 0.5 * g_worldY);
+  
+  gID_H2_photon_pos = 1;
   analysisManager->CreateH2("PhotonPosition", "Photon Position", 100, -0.5 * g_worldX, 0.5 * g_worldX, 100, -0.5 * g_worldY, 0.5 * g_worldY);
 }
 
@@ -144,19 +157,22 @@ void PMTLCRunAction::EndOfRunAction(const G4Run * run)
       outFile << "runID,"
               << "Scintillation Photon Count,"
               << "Cherenkov Photon Count,"
-              << "Fiber Numerical Aperture Photon Count" << "\n";
+              << "Photon Hit Photocathode,"
+              << "lightCollectionEfficiency" << "\n";
     }
 
     // 统计光子产生与收集
-    G4int scintillationPhotonCount = analysisManager->GetH1(0)->entries();
-    G4int cherenkovPhotonCount = analysisManager->GetH1(1)->entries();
-    G4int fiberNumericalAperturePhotonCount = analysisManager->GetH1(2)->entries();
+    G4int scintillationPhotonCount = analysisManager->GetH1(gID_H1_sc_wl)->entries();
+    G4int cherenkovPhotonCount = analysisManager->GetH1(gID_H1_ch_wl)->entries();
+    G4int PhotocathodeCounts = analysisManager->GetH1(gID_H1_PMT_wl)->entries();
+    G4double lightCollectionEfficiency = (G4double)PhotocathodeCounts / (scintillationPhotonCount + cherenkovPhotonCount);
 
     // 写入数据
     outFile << runID << ","
             << scintillationPhotonCount << ","
             << cherenkovPhotonCount << ","
-            << fiberNumericalAperturePhotonCount <<"\n";
+            << PhotocathodeCounts <<","
+            << lightCollectionEfficiency <<"\n";
 
     // 关闭文件
     outFile.close();

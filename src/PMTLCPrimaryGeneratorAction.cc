@@ -113,7 +113,7 @@ void PMTLCPrimaryGeneratorAction::GeneratePrimaries(G4Event* anEvent)
 
     // 将抽样得到的放射源位置XY填入到H2中
     auto analysisManager = G4AnalysisManager::Instance();
-    analysisManager->FillH2(0, x, y);
+    analysisManager->FillH2(gID_H2_source_pos, x, y);
 
     z_pos = 0.4*g_worldZ;
     G4ThreeVector sourcePosition(x, y, z_pos);
@@ -152,7 +152,7 @@ void PMTLCPrimaryGeneratorAction::GeneratePrimaries(G4Event* anEvent)
   
 
     // 设置射线的方向
-    // G4ThreeVector direction(0, 0, -1);
+    direction = G4ThreeVector(0, 0, -1);
 
     if (useParticleGun)
     {

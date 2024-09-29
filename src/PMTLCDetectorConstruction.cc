@@ -123,21 +123,24 @@ G4VPhysicalVolume *PMTLCDetectorConstruction::Construct()
   // ====================================
   //
   G4ThreeVector crystal_pos;
+  G4ThreeVector wrapper_pos;
+  G4double wrapperX,wrapperY,wrapperZ;
   MyPhysicalVolume *p_crystal_Container;
    G4VisAttributes *VisAtt;
   if (g_wrapper_Type == CUBE)
   {
     // wrapper
     name = gN_sc_wrapper;
-    G4double wrapperXY = 5 * cm;
-    G4double wrapperZ = 2.2 * cm;
+    wrapperX = 5 * cm;
+    wrapperY = 5 * cm;
+    wrapperZ = 2.2 * cm;
     G4double wrapperThickness = g_wrapper_thickness;
-    G4double gapXY = wrapperXY - wrapperThickness;
+    G4double gapXY = wrapperX - wrapperThickness;
     G4double gapZ = wrapperZ - 0.5*wrapperThickness;
-    G4ThreeVector wrapper_pos = g_pmt_pos + G4ThreeVector(0, 0, 0.5 * g_pmt_thickness + 0.5 * wrapperZ);
+    wrapper_pos = g_pmt_pos + G4ThreeVector(0, 0, 0.5 * g_pmt_thickness + 0.5 * wrapperZ);
     G4ThreeVector gap_pos = G4ThreeVector(0, 0, - 0.25*wrapperThickness);
 
-    G4Box *s_wrapper = new G4Box(name, 0.5 * wrapperXY, 0.5 * wrapperXY, 0.5 * wrapperZ);
+    G4Box *s_wrapper = new G4Box(name, 0.5 * wrapperX, 0.5 * wrapperY, 0.5 * wrapperZ);
     G4LogicalVolume *l_wrapper = new G4LogicalVolume(s_wrapper, g_wrapper_material, name);
     MyPhysicalVolume *p_wrapper = new MyPhysicalVolume(0, wrapper_pos, name, l_wrapper, p_world, false, 0, checkOverlaps);
     fVolumeMap[name] = p_wrapper;
@@ -161,18 +164,56 @@ G4VPhysicalVolume *PMTLCDetectorConstruction::Construct()
 
     crystal_pos = G4ThreeVector(0, 0, -0.5 * gapZ + 0.5 * g_crystalZ + g_grease_thickness);
   }
+  if (g_wrapper_Type == TEFLON)
+  {
+    // wrapper
+    name = gN_sc_wrapper;
+    wrapperX = g_crystalX + g_gap_thickness + g_wrapper_thickness;
+    wrapperY = g_crystalY + g_gap_thickness + g_wrapper_thickness;
+    wrapperZ = g_crystalZ + g_gap_thickness*0.5 + g_wrapper_thickness*0.5; // 晶体放在下侧紧靠PMT
+    G4double wrapperThickness = g_wrapper_thickness;
+    G4double gapX = wrapperX - wrapperThickness;
+    G4double gapY = wrapperY - wrapperThickness;
+    G4double gapZ = wrapperZ - 0.5*wrapperThickness;
+    wrapper_pos = g_pmt_pos + G4ThreeVector(0, 0, 0.5 * g_pmt_thickness + 0.5 * wrapperZ);
+    G4ThreeVector gap_pos = G4ThreeVector(0, 0, - 0.25*wrapperThickness);
+
+    G4Box *s_wrapper = new G4Box(name, 0.5 * wrapperX, 0.5 * wrapperY, 0.5 * wrapperZ);
+    G4LogicalVolume *l_wrapper = new G4LogicalVolume(s_wrapper, g_wrapper_material, name);
+    MyPhysicalVolume *p_wrapper = new MyPhysicalVolume(0, wrapper_pos, name, l_wrapper, p_world, false, 0, checkOverlaps);
+    fVolumeMap[name] = p_wrapper;
+
+    name = "sc_gap";
+    G4Box *s_gap = new G4Box(name, 0.5 * gapX, 0.5 * gapY, 0.5 * gapZ);
+    G4LogicalVolume *l_gap = new G4LogicalVolume(s_gap, g_world_material, name);
+    MyPhysicalVolume *p_gap = new MyPhysicalVolume(0, gap_pos, name, l_gap, p_wrapper, false, 0, checkOverlaps);
+    p_crystal_Container = p_gap;
+
+    VisAtt = new G4VisAttributes(G4Colour(1, 1, 1, 0.1));
+    VisAtt->SetForceSolid(true);
+    VisAtt->SetVisibility(true);
+    l_wrapper->SetVisAttributes(VisAtt);
+    G4VisAttributes *wrapperVisAtt = new G4VisAttributes(G4Colour(0.4, 0.3, 0.3, 0.3));
+    wrapperVisAtt->SetForceSolid(true);
+    wrapperVisAtt->SetVisibility(true);
+    l_gap->SetVisAttributes(wrapperVisAtt);
+
+    new G4LogicalSkinSurface("WrapperGapSurface", l_wrapper, surf_Hreflex);
+
+    crystal_pos = G4ThreeVector(0, 0, -0.5 * gapZ + 0.5 * g_crystalZ + g_grease_thickness);
+  }
   else if(    g_wrapper_Type == CYLINDER  ){
     // wrapper
     name = gN_sc_wrapper;
     G4double wrapperR = 3.2 * cm;
-    G4double wrapperH = 2.2 * cm;
+    wrapperZ = 2.2 * cm;
     G4double wrapperThickness = g_wrapper_thickness;
     G4double gapR = wrapperR - wrapperThickness;
-    G4double gapH = wrapperH - wrapperThickness; 
-    G4ThreeVector wrapper_pos = g_pmt_pos + G4ThreeVector(0, 0, 0.5 * g_pmt_thickness + 0.5* wrapperH);
+    G4double gapH = wrapperZ - wrapperThickness; 
+    wrapper_pos = g_pmt_pos + G4ThreeVector(0, 0, 0.5 * g_pmt_thickness + 0.5* wrapperZ);
     G4ThreeVector gap_pos = G4ThreeVector(0, 0, - 0.5*wrapperThickness);
 
-    G4Tubs *s_wrapper = new G4Tubs(name, 0, wrapperR, 0.5 * wrapperH, 0, 360 * deg);
+    G4Tubs *s_wrapper = new G4Tubs(name, 0, wrapperR, 0.5 * wrapperZ, 0, 360 * deg);
     G4LogicalVolume *l_wrapper = new G4LogicalVolume(s_wrapper, g_wrapper_material, name);
     MyPhysicalVolume *p_wrapper = new MyPhysicalVolume(0, wrapper_pos, name, l_wrapper, p_world, false, 0, checkOverlaps);
     fVolumeMap[name] = p_wrapper;
@@ -208,6 +249,19 @@ G4VPhysicalVolume *PMTLCDetectorConstruction::Construct()
   crystalVisAtt->SetVisibility(true);
   l_crystal->SetVisAttributes(crystalVisAtt);
   
+
+if(g_grease_thickness > 10*um){
+    name = "optical_grease";
+    G4ThreeVector gap_pos = wrapper_pos - G4ThreeVector(0, 0, 0.5 * wrapperZ + 0.5*g_grease_thickness);
+    G4Box *s_grease = new G4Box(name, 0.5 * g_grease_X, 0.5 * g_grease_Y, 0.5*g_grease_thickness);
+    G4LogicalVolume *l_grease = new G4LogicalVolume(s_grease, g_grease_material, name);
+    MyPhysicalVolume *p_grease = new MyPhysicalVolume(0, gap_pos, name, l_grease, p_world, false, 0, checkOverlaps);
+    fVolumeMap[name] = p_grease;
+    VisAtt = new G4VisAttributes(G4Colour(0.1, 0.5, 1, 0.3));
+    VisAtt->SetForceSolid(true);
+    VisAtt->SetVisibility(true);
+    l_grease->SetVisAttributes(VisAtt);
+}
 
   myPrint(lv, f("fVolumeMap length is {}\n", fVolumeMap.size()));
   for (const auto &pair : fVolumeMap)

@@ -86,7 +86,7 @@ G4double PMTLCEventAction::GetSum(G4THitsMap<G4double>* hitsMap) const
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 void PMTLCEventAction::BeginOfEventAction(const G4Event *)
 {
-
+  fLightCollection = 0;
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
@@ -104,10 +104,10 @@ void PMTLCEventAction::EndOfEventAction(const G4Event *event)
   //     }
   // }
 
-  // fEdepInCrystal = G4SDManager::GetSDMpointer()->GetCollectionID(gN_sc_crystal+"/Edep");
-  // auto EdepInCrystal = GetSum(GetHitsCollection(fEdepInCrystal, event));
-  // analysisManager->FillNtupleDColumn(0, 1, EdepInCrystal);
-  // analysisManager->AddNtupleRow(0);
+  fEdepInCrystal = G4SDManager::GetSDMpointer()->GetCollectionID(gN_sc_crystal+"/Edep");
+  auto EdepInCrystal = GetSum(GetHitsCollection(fEdepInCrystal, event));
+  analysisManager->FillH1(gID_H1_sc_ed, EdepInCrystal);
+  analysisManager->FillH1(gID_H1_PMT_LC, fLightCollection);
 
   processedTrackIDs.clear(); // 清空已处理的 track ID (用于统计哪些光子进入数值孔径)
     // Print per event (modulo n)

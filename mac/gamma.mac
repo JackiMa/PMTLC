@@ -19,4 +19,4 @@
 /gun/energy 511 keV
 
 # 设置运行次数
-/run/beamOn 100000
+/run/beamOn 10000

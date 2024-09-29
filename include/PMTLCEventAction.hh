@@ -68,6 +68,8 @@ class PMTLCEventAction : public G4UserEventAction
   G4int fEdepInCrystal = -1;
   G4int fEngPassingSD1 = -1;
 
+  G4int fLightCollection = -1;
+
 };
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 #endif

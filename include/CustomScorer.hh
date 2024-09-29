@@ -142,7 +142,7 @@ public:
     virtual G4bool ProcessHits(G4Step* aStep, G4TouchableHistory*);
 
 private:
-    G4int fHistogramId;
+    G4int fH1Id, fH2Id;
     std::set<G4int> processedTrackIDs;  // 存储已经处理过的光子的 track ID
 };
 

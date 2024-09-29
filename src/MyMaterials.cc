@@ -1525,8 +1525,7 @@ G4Material* MyMaterials::LuAG_Ce() // Lutetium Aluminum Garnet - Ce-doped
   mat->AddElement(Al,12);
   mat->AddElement(O,5);
 
-  const G4int nEntries_FAST = 458;
-  G4double PhotonEnergy_FAST[nEntries_FAST] =
+  std::vector<G4double>  PhotonEnergy_FAST =
     { 1.82487*eV, 1.82622*eV, 1.82756*eV, 1.82891*eV, 1.83026*eV, 1.83161*eV, 1.83296*eV, 1.83432*eV, 1.83568*eV, 1.83704*eV,
       1.8384*eV, 1.83976*eV, 1.84113*eV, 1.8425*eV, 1.84387*eV, 1.84524*eV, 1.84661*eV, 1.84799*eV, 1.84937*eV, 1.85075*eV,
       1.85213*eV, 1.85351*eV, 1.8549*eV, 1.85629*eV, 1.85768*eV, 1.85907*eV, 1.86047*eV, 1.86186*eV, 1.86326*eV, 1.86466*eV,
@@ -1573,7 +1572,7 @@ G4Material* MyMaterials::LuAG_Ce() // Lutetium Aluminum Garnet - Ce-doped
       2.66954*eV, 2.67241*eV, 2.6753*eV, 2.67819*eV, 2.68108*eV, 2.68398*eV, 2.68689*eV, 2.6898*eV, 2.69273*eV, 2.69565*eV,
       2.69859*eV, 2.70153*eV, 2.70447*eV, 2.70742*eV, 2.71038*eV, 2.71335*eV, 2.71632*eV, 2.7193*eV, 2.72228*eV, 2.72527*eV,
       2.72827*eV, 2.73128*eV, 2.73429*eV, 2.73731*eV, 2.74033*eV, 2.74336*eV, 2.7464*eV, 2.74945*eV };
-  G4double FastComponent[nEntries_FAST] =
+  std::vector<G4double>  FastComponent =
     { 5.81332e-05, 6.44431e-05, 5.14981e-05, 5.53578e-05, 7.63256e-05, 7.53282e-05, 7.58269e-05, 8.97693e-05, 7.76917e-05, 7.38103e-05,
       7.78435e-05, 7.09481e-05, 7.49162e-05, 8.77528e-05, 8.86852e-05, 9.01596e-05, 7.3355e-05, 8.61916e-05, 8.31125e-05, 9.63177e-05,
       9.64045e-05, 8.96609e-05, 0.000118934, 0.000122446, 0.000112017, 8.10092e-05, 9.10487e-05, 9.54287e-05, 0.000102975, 0.000102996,
@@ -1621,8 +1620,7 @@ G4Material* MyMaterials::LuAG_Ce() // Lutetium Aluminum Garnet - Ce-doped
       0.000193611, 0.000166442, 0.000154017, 0.000139056, 0.0001301, 0.00011928, 0.000122511, 0.000106704, 8.5411e-05, 8.49339e-05,
       8.20717e-05, 6.96905e-05, 6.09304e-05, 5.20402e-05, 5.76345e-05, 5.77646e-05, 4.39089e-05, 6.16243e-05 };
 
-  const G4int nEntries_RI = 42;
-  G4double PhotonEnergy_RI[nEntries_RI] =
+ std::vector<G4double>  PhotonEnergy_RI =
     { 0.1000*eV, 1.0000*eV, 1.0121*eV, 1.0332*eV,
       1.0552*eV, 1.0781*eV, 1.1021*eV, 1.1271*eV,
       1.1533*eV, 1.1808*eV, 1.2096*eV, 1.2398*eV,
@@ -1635,7 +1633,7 @@ G4Material* MyMaterials::LuAG_Ce() // Lutetium Aluminum Garnet - Ce-doped
       3.3062*eV, 3.5424*eV, 3.8149*eV, 4.1328*eV,
       4.5085*eV, 4.9594*eV };
 
-  G4double RefractiveIndex[nEntries_RI] =
+  std::vector<G4double> RefractiveIndex=
     { 1.8212, 1.8212, 1.8215, 1.8219,
       1.8223, 1.8227, 1.8231, 1.8236,
       1.8240, 1.8245, 1.8250, 1.8255,
@@ -1650,8 +1648,7 @@ G4Material* MyMaterials::LuAG_Ce() // Lutetium Aluminum Garnet - Ce-doped
   //G4double Rayleigh[nEntries_RI] =
   //  { 138.*mm, 138.*mm, 138.*mm };
 
-  const G4int nEntries_ABS = 89;
-  G4double PhotonEnergy_ABS[nEntries_ABS] =
+  std::vector<G4double>  PhotonEnergy_ABS =
     { 1.78417*eV, 1.7971*eV, 1.81022*eV, 1.82353*eV, 1.83704*eV, 1.85075*eV, 1.86466*eV, 1.87879*eV, 1.89313*eV, 1.90769*eV,
       1.92248*eV, 1.9375*eV, 1.95276*eV, 1.96825*eV, 1.984*eV, 2*eV, 2.01626*eV, 2.03279*eV, 2.04959*eV, 2.06667*eV,
       2.08403*eV, 2.10169*eV, 2.11966*eV, 2.13793*eV, 2.15652*eV, 2.17544*eV, 2.19469*eV, 2.21429*eV, 2.23423*eV, 2.25455*eV,
@@ -1661,7 +1658,7 @@ G4Material* MyMaterials::LuAG_Ce() // Lutetium Aluminum Garnet - Ce-doped
       3.13924*eV, 3.17949*eV, 3.22078*eV, 3.26316*eV, 3.30667*eV, 3.35135*eV, 3.39726*eV, 3.44444*eV, 3.49296*eV, 3.54286*eV,
       3.5942*eV, 3.64706*eV, 3.70149*eV, 3.75758*eV, 3.81538*eV, 3.875*eV, 3.93651*eV, 4*eV, 4.06557*eV, 4.13333*eV,
       4.20339*eV, 4.27586*eV, 4.35088*eV, 4.42857*eV, 4.50909*eV, 4.59259*eV, 4.67925*eV, 4.76923*eV, 4.86275*eV };
-  G4double Absorption[nEntries_ABS] =
+  std::vector<G4double> Absorption =
     { 1.66482*m, 1.0584*m, 1.90233*m, 0.958758*m, 1.16913*m, 1.05368*m, 0.881739*m, 2.74593*m, 0.969113*m, 1.30342*m,
       1.11065*m, 1.14053*m, 0.926481*m, 0.835474*m, 0.814388*m, 0.702776*m, 1.01264*m, 0.749002*m, 0.691299*m, 0.791851*m,
       0.708582*m, 0.609636*m, 0.625308*m, 0.59058*m, 0.522642*m, 0.599727*m, 0.595345*m, 0.594927*m, 0.574464*m, 0.541271*m,
@@ -1673,29 +1670,37 @@ G4Material* MyMaterials::LuAG_Ce() // Lutetium Aluminum Garnet - Ce-doped
       0.0322887*m, 0.0251734*m, 0.0194992*m, 0.0145645*m, 0.0112908*m, 0.0100775*m, 0.0112081*m, 0.0158907*m, 0.019793*m };
 
   // for now, using the LSO scintillation properties
-  const G4int nEntries_SCY = 12;
-  G4double ElectronEnergy_SCY[nEntries_SCY] =
+  std::vector<G4double> ElectronEnergy_SCY=
     { 0.000*MeV, 0.015*MeV, 0.020*MeV, 0.030*MeV,
       0.040*MeV, 0.060*MeV, 0.080*MeV, 0.090*MeV,
       0.105*MeV, 0.300*MeV, 0.500*MeV, 1.000*MeV };
-  G4double ScintilYield[nEntries_SCY] =
+  std::vector<G4double> ScintilYield =
     { 0.10, 0.46, 0.60, 0.68,
       0.74, 0.80, 0.82, 0.84,
       0.87, 0.96, 0.98, 1.00 };
-  for(int i = 0; i < nEntries_SCY; i++)
-    ScintilYield[i] = 15000.0*MeV*ScintilYield[i]*ElectronEnergy_SCY[i];
+
+int nEntries_SCY = std::min(ElectronEnergy_SCY.size(), ScintilYield.size());
+
+// 更新 ScintilYield 的值
+for(int i = 0; i < nEntries_SCY; i++) {
+    ScintilYield[i] = 15000.0 * MeV * ScintilYield[i] * ElectronEnergy_SCY[i];
+}
 
   G4MaterialPropertiesTable* myMPT = new G4MaterialPropertiesTable();
-  myMPT->AddProperty("FASTCOMPONENT", PhotonEnergy_FAST, FastComponent,   nEntries_FAST);
-  myMPT->AddProperty("RINDEX",        PhotonEnergy_RI,   RefractiveIndex, nEntries_RI);
+  myMPT->AddProperty("SCINTILLATIONCOMPONENT1", PhotonEnergy_FAST, FastComponent);
+  myMPT->AddProperty("SCINTILLATIONCOMPONENT2", PhotonEnergy_FAST, FastComponent);
+  myMPT->AddProperty("RINDEX",        PhotonEnergy_RI,   RefractiveIndex);
   //myMPT->AddProperty("RAYLEIGH",      PhotonEnergy_RI,   Rayleigh,        nEntries_RI);
-  myMPT->AddProperty("ABSLENGTH",     PhotonEnergy_ABS,  Absorption,      nEntries_ABS);
+  myMPT->AddProperty("ABSLENGTH",     PhotonEnergy_ABS,  Absorption);
   //myMPT->AddProperty("ELECTRONSCINTILLATIONYIELD", ElectronEnergy_SCY, ScintilYield, nEntries_SCY);
   myMPT->AddConstProperty("SCINTILLATIONYIELD",15000/MeV);
   myMPT->AddConstProperty("RESOLUTIONSCALE",8.5);
-  myMPT->AddConstProperty("FASTTIMECONSTANT",60.*ns);
-  myMPT->AddConstProperty("YIELDRATIO",1.0);
-  myMPT->AddConstProperty("FASTSCINTILLATIONRISETIME",0.5*ns);
+  myMPT->AddConstProperty("SCINTILLATIONTIMECONSTANT1",60.*ns);
+  myMPT->AddConstProperty("SCINTILLATIONTIMECONSTANT2",60.*ns);
+  myMPT->AddConstProperty("SCINTILLATIONYIELD1", 1);
+  myMPT->AddConstProperty("SCINTILLATIONYIELD2", 0);
+  myMPT->AddConstProperty("SCINTILLATIONRISETIME1",0.5*ns);
+  myMPT->AddConstProperty("SCINTILLATIONRISETIME2",0.5*ns);
 
   mat->SetMaterialPropertiesTable(myMPT);
 
@@ -1885,6 +1890,7 @@ G4Material* MyMaterials::LYSO(double user_lightyield,double scaleFactor,double u
 
   return mat;
 }
+
 
 
 G4Material* MyMaterials::LSO()

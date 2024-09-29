@@ -79,11 +79,13 @@ void PMTLCSteppingAction::UserSteppingAction(const G4Step *step)
 
                 // 记录打到光阴极上的光子信息
                 auto analysisManager = G4AnalysisManager::Instance();
-                analysisManager->FillH1(2, wavelength);
-                analysisManager->FillH2(1, x, y);
+                analysisManager->FillH1(gID_H1_PMT_wl, wavelength);
+                analysisManager->FillH2(gID_H2_photon_pos, x, y);
+                fEventAction->fLightCollection++;
+                
                 if (y >= -.5 * mm && y <= .5 * mm)
                 {
-                    analysisManager->FillH1(3, x);
+                    analysisManager->FillH1(gID_H1_photon_posY0, x);
                 }
                 // 计算点到对角线 x = y 的距离
                 double distanceToDiagonal = std::abs(x - y) / std::sqrt(2);
@@ -96,11 +98,11 @@ void PMTLCSteppingAction::UserSteppingAction(const G4Step *step)
                     // 填入FillH1(4, d)
                     if (x > 0)
                     {
-                        analysisManager->FillH1(4, distanceToOrigin);
+                        analysisManager->FillH1(gID_H1_photon_posYX, distanceToOrigin);
                     }
                     else
                     {
-                        analysisManager->FillH1(4, -distanceToOrigin);
+                        analysisManager->FillH1(gID_H1_photon_posYX, -distanceToOrigin);
                     }
                 }
                 // 标记光子为已处理
