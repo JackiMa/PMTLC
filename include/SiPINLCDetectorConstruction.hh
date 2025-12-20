@@ -39,6 +39,7 @@
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
 class SiPINLCDetectorMessenger;
+class SiPINLCParameterMessenger;
 class G4GlobalMagFieldMessenger;
 
 class SiPINLCDetectorConstruction : public G4VUserDetectorConstruction
@@ -67,6 +68,7 @@ class SiPINLCDetectorConstruction : public G4VUserDetectorConstruction
   std::map<G4String, MyPhysicalVolume*> fVolumeMap; // 维护需要别处引用的Solid
 
   SiPINLCDetectorMessenger* fDetectorMessenger;
+  SiPINLCParameterMessenger* fParameterMessenger;
   G4String fDumpGdmlFileName;
 
   G4bool fVerbose;

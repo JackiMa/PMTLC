@@ -1403,6 +1403,11 @@ G4Material* MyMaterials::CopperTungstenAlloy(const G4double& WFrac)
 
 G4Material* MyMaterials::OpticalGrease()
 {
+  // EJ-550 Optical Grease
+  // 数据来源: https://eljentechnology.com/products/accessories/ej-550-ej-552
+  // 透过率数据来自 0.1mm 厚度样品，转换为吸收长度
+  // 折射率 n = 1.46
+  
   G4double a, z, density;
   G4Element* H = new G4Element("Hydrogen", "H", z=1., a= 1.01*g/mole);
   G4Element* O = new G4Element("Oxygen"  , "O", z=8., a=16.00*g/mole);
@@ -1413,8 +1418,9 @@ G4Material* MyMaterials::OpticalGrease()
   mat->AddElement(H,1);
   mat->AddElement(O,1);
 
-  const G4int nEntries = 35;
-  G4double PhotonEnergy[nEntries] =
+  // 折射率数据 - 常数 n = 1.46
+  const G4int nEntries_RI = 35;
+  G4double PhotonEnergy_RI[nEntries_RI] =
     { 0.0001*eV, 1.000*eV, 2.034*eV, 2.068*eV,
        2.103*eV, 2.139*eV, 2.177*eV, 2.216*eV,
        2.256*eV, 2.298*eV, 2.341*eV, 2.386*eV,
@@ -1424,21 +1430,70 @@ G4Material* MyMaterials::OpticalGrease()
        3.181*eV, 3.265*eV, 3.353*eV, 3.446*eV,
        3.545*eV, 3.649*eV, 3.760*eV, 3.877*eV,
        4.002*eV, 4.136*eV, 6.260*eV };
-  G4double RefractiveIndex[nEntries] =
-    { 1.50, 1.50, 1.50, 1.50,
-      1.50, 1.50, 1.50, 1.50,
-      1.50, 1.50, 1.50, 1.50,
-      1.50, 1.50, 1.50, 1.50,
-      1.50, 1.50, 1.50, 1.50,
-      1.50, 1.50, 1.50, 1.50,
-      1.50, 1.50, 1.50, 1.50,
-      1.50, 1.50, 1.50, 1.50,
-      1.50, 1.50, 1.50 };
+  G4double RefractiveIndex[nEntries_RI] =
+    { 1.46, 1.46, 1.46, 1.46,
+      1.46, 1.46, 1.46, 1.46,
+      1.46, 1.46, 1.46, 1.46,
+      1.46, 1.46, 1.46, 1.46,
+      1.46, 1.46, 1.46, 1.46,
+      1.46, 1.46, 1.46, 1.46,
+      1.46, 1.46, 1.46, 1.46,
+      1.46, 1.46, 1.46, 1.46,
+      1.46, 1.46, 1.46 };
 
+  // 吸收长度数据 - 从 EJ-550 透过率数据转换
+  // 公式: L_abs = -d / ln(T), d = 0.1 mm
+  // 波长 -> 能量: E(eV) = 1239.84187 / λ(nm)
+  // 
+  // 原始数据 (波长 nm, 透过率 %, 吸收长度 mm):
+  // 281.75 nm -> 4.396 eV, T=62.5%, L_abs=0.213 mm
+  // 300 nm -> 4.133 eV, T=88.3%, L_abs=0.806 mm
+  // 350 nm -> 3.542 eV, T=97.6%, L_abs=4.12 mm
+  // 400 nm -> 3.100 eV, T=98.1%, L_abs=5.21 mm
+  // 450 nm -> 2.755 eV, T=98.8%, L_abs=8.26 mm
+  // 500-700 nm -> 外推, T=98.92%, L_abs=9.26 mm
+  
+  const G4int nEntries_ABS = 15;
+  G4double PhotonEnergy_ABS[nEntries_ABS] = {
+    1.771*eV,  // 700 nm - 外推
+    1.907*eV,  // 650 nm - 外推
+    2.066*eV,  // 600 nm - 外推
+    2.254*eV,  // 550 nm - 外推
+    2.480*eV,  // 500 nm - 外推 (T=98.92%)
+    2.497*eV,  // 497 nm (T=98.82%)
+    2.583*eV,  // 480 nm (T=98.82%)
+    2.695*eV,  // 460 nm (T=98.82%)
+    2.818*eV,  // 440 nm (T=98.77%)
+    2.952*eV,  // 420 nm (T=98.22%)
+    3.100*eV,  // 400 nm (T=98.11%)
+    3.263*eV,  // 380 nm (T=97.92%)
+    3.444*eV,  // 360 nm (T=97.62%)
+    3.647*eV,  // 340 nm (T=97.07%)
+    4.133*eV   // 300 nm (T=88.3%)
+  };
+  
+  // 吸收长度 L_abs = -0.1mm / ln(T/100)
+  G4double Absorption[nEntries_ABS] = {
+    9.26*mm,   // 700 nm (外推 T=98.92%)
+    9.26*mm,   // 650 nm (外推 T=98.92%)
+    9.26*mm,   // 600 nm (外推 T=98.92%)
+    9.26*mm,   // 550 nm (外推 T=98.92%)
+    9.26*mm,   // 500 nm (外推 T=98.92%)
+    8.44*mm,   // 497 nm (T=98.82%)
+    8.44*mm,   // 480 nm (T=98.82%)
+    8.44*mm,   // 460 nm (T=98.82%)
+    8.12*mm,   // 440 nm (T=98.77%)
+    5.58*mm,   // 420 nm (T=98.22%)
+    5.28*mm,   // 400 nm (T=98.11%)
+    4.78*mm,   // 380 nm (T=97.92%)
+    4.17*mm,   // 360 nm (T=97.62%)
+    3.40*mm,   // 340 nm (T=97.07%)
+    0.80*mm    // 300 nm (T=88.3%)
+  };
 
   G4MaterialPropertiesTable* myMPT = new G4MaterialPropertiesTable();
-  myMPT->AddProperty("RINDEX",    PhotonEnergy, RefractiveIndex, nEntries);
-  //myMPT->AddProperty("ABSLENGTH", PhotonEnergy, Absorption,      nEntries);
+  myMPT->AddProperty("RINDEX",    PhotonEnergy_RI, RefractiveIndex, nEntries_RI);
+  myMPT->AddProperty("ABSLENGTH", PhotonEnergy_ABS, Absorption, nEntries_ABS);
 
   mat->SetMaterialPropertiesTable(myMPT);
 

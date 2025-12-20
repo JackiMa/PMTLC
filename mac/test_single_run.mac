@@ -1,0 +1,11 @@
+# Test single run with parameter setting
+# 参数设置在 /run/initialize 之前执行
+
+# Set parameters
+/SiPINLC/geometry/greaseThickness 0.10 mm
+/SiPINLC/geometry/topAirGap 0.15 mm
+
+# Initialize and run
+/run/initialize
+/run/beamOn 1000
+

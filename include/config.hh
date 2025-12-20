@@ -25,7 +25,8 @@ enum ReflectorType {
 
 // surface properties
 inline G4OpticalSurface *surf_ESR = MyMaterials::surf_ESR();
-inline G4OpticalSurface *surf_Hreflex = MyMaterials::surf_Teflon(0.02);
+// PTFE反射率：论文中使用97.5%反射率 (2.5%透过率)
+inline G4OpticalSurface *surf_Hreflex = MyMaterials::surf_Teflon(0.025);  // 97.5% reflectivity
 inline G4OpticalSurface *surf_Lreflex = MyMaterials::surf_Teflon(0.4);
 
 // g_ means global_
@@ -35,7 +36,11 @@ inline G4bool g_has_opticalPhysics = true;  // 是否模拟光学过程
 inline G4bool g_has_cherenkov = false;       // 是否考虑切伦科夫光
 
 inline G4String g_gdml_name = "";  // GDML文件名 ==''表示不保存GDML文件
-inline G4double g_grease_thickness = 0.1*mm;  // 是否有导光油, >10*um表示有导光油
+inline G4double g_grease_thickness = 0.05*mm;  // 导光油厚度, >10*um表示有导光油 (论文基准值50μm)
+// 晶体与 SiPIN 之间如果“没有 grease”，按经验应存在一层很薄的空气层（避免晶体直接接触窗口材料）
+inline G4double g_bottom_airgap_thickness = 10*um;  // 默认 10um，可调
+inline G4double g_top_airgap_thickness = 0.1*mm;  // 顶面空气层厚度 (论文基准值100μm)
+inline G4double g_side_contact_ratio = 0.5;  // 侧面贴合比例 0~1, 用于概率边界法 (论文基准值50%)
 /*
         ↑ z
         |
@@ -88,8 +93,9 @@ inline G4Material *g_crystal_material = MyMaterials::GAGG_Ce_Mg(20000, 1, -1);
 // inline G4Material *g_crystal_material = MyMaterials::BGO(8000, 1, -1); 
 // inline G4Material *g_crystal_material = MyMaterials::CsI_Tl(30000, 1, -1); 
 
-inline G4double g_grease_X = 1.1*g_crystalX;  
-inline G4double g_grease_Y = 1.1*g_crystalY;
+// Grease 尺寸应与晶体底面匹配（不能超出 gap 底面开口）
+inline G4double g_grease_X = g_crystalX;  
+inline G4double g_grease_Y = g_crystalY;
 inline G4Material *g_grease_material = MyMaterials::OpticalGrease(); 
 
 // data recording
@@ -97,12 +103,19 @@ inline G4int gID_H1_sc_wl; // 闪烁体发光的光谱
 inline G4int gID_H1_ch_wl; // 所有材料切伦科夫光的光谱
 inline G4int gID_H1_sipin_wl; // 光子打到光阴极上的光谱
 inline G4int gID_H1_sc_ed; // 闪烁体中的能量沉积
-inline G4int gID_H1_sipin_LC;  // 每一次事件产生的光子数? 有点忘了
+inline G4int gID_H1_sipin_LC;  // 每一次事件收集的光子数
 
 inline G4int gID_H1_photon_posY0;
 inline G4int gID_H1_photon_posYX;
 inline G4int gID_H2_source_pos;
 inline G4int gID_H2_photon_pos;
+
+// === 论文所需的新增统计量 ===
+inline G4int gID_H1_sipin_theta;     // 光子到达SiPIN的入射角分布 (度)
+inline G4int gID_H1_sipin_hitCount;  // 每个光子撞击SiPIN的次数分布
+inline G4int gID_H1_escape_channel;  // 光子逃逸/损失通道分类 (0:被晶体吸收, 1:从顶面逃逸, 2:从侧面逃逸, 3:被PTFE吸收, 4:其他)
+inline G4int gID_H1_photon_generated; // 每事件产生的闪烁光子数
+inline G4int gID_H1_photon_pathlength; // 光子在晶体内的总路程 (mm)，用于理解自吸收效应
 
 
 // source

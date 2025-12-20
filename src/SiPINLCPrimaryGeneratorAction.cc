@@ -103,6 +103,24 @@ void SiPINLCPrimaryGeneratorAction::GeneratePrimaries(G4Event* anEvent)
     G4Exception("SiPINLCPrimaryGeneratorAction::GeneratePrimaries()", "SiPINLC_001", FatalException, msg);
   }
 
+  // 如果用户用 /gun/particle opticalphoton 做快速调试，则完全信任 /gun/* 参数
+  // 不在这里覆盖 position/direction/energy，避免“光子明明从晶体发射却被我们改到世界顶上”等问题。
+  if (useParticleGun) {
+    auto* def = fParticleGun->GetParticleDefinition();
+    if (def && def->GetParticleName() == "opticalphoton") {
+      fParticleGun->GeneratePrimaryVertex(anEvent);
+      return;
+    }
+  }
+  // 同理：如果用 GPS 直接发 opticalphoton（/gps/particle opticalphoton），也信任 /gps/* 参数
+  if (!useParticleGun) {
+    auto* def = fGPS->GetParticleDefinition();
+    if (def && def->GetParticleName() == "opticalphoton") {
+      fGPS->GeneratePrimaryVertex(anEvent);
+      return;
+    }
+  }
+
   InitializeProjectionArea();
   
     // 在投影区域内随机抽样一个点

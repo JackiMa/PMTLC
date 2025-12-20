@@ -87,6 +87,14 @@ G4double SiPINLCEventAction::GetSum(G4THitsMap<G4double>* hitsMap) const
 void SiPINLCEventAction::BeginOfEventAction(const G4Event *)
 {
   fLightCollection = 0;
+  fPhotonGenerated = 0;
+  fEscapeAbsorbed = 0;
+  fEscapeTopAir = 0;
+  fEscapeSideAir = 0;
+  fEscapePTFE = 0;
+  fEscapeOther = 0;
+  photonHitCount.clear();
+  photonPathInCrystal.clear();
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
@@ -108,8 +116,31 @@ void SiPINLCEventAction::EndOfEventAction(const G4Event *event)
   auto EdepInCrystal = GetSum(GetHitsCollection(fEdepInCrystal, event));
   analysisManager->FillH1(gID_H1_sc_ed, EdepInCrystal);
   analysisManager->FillH1(gID_H1_sipin_LC, fLightCollection);
+  
+  // === 论文所需：填充撞击次数分布直方图 ===
+  for (const auto& pair : photonHitCount) {
+    analysisManager->FillH1(gID_H1_sipin_hitCount, pair.second);
+  }
+  
+  // === 论文所需：填充光子在晶体内路程分布直方图 ===
+  for (const auto& pair : photonPathInCrystal) {
+    analysisManager->FillH1(gID_H1_photon_pathlength, pair.second / mm);  // 转换为mm
+  }
+  
+  // === 论文所需：填充逃逸通道统计直方图 ===
+  // 通道编码: 0=被晶体吸收, 1=从顶面逃逸, 2=从侧面逃逸, 3=被PTFE吸收, 4=其他
+  for (G4int i = 0; i < fEscapeAbsorbed; ++i) analysisManager->FillH1(gID_H1_escape_channel, 0);
+  for (G4int i = 0; i < fEscapeTopAir; ++i) analysisManager->FillH1(gID_H1_escape_channel, 1);
+  for (G4int i = 0; i < fEscapeSideAir; ++i) analysisManager->FillH1(gID_H1_escape_channel, 2);
+  for (G4int i = 0; i < fEscapePTFE; ++i) analysisManager->FillH1(gID_H1_escape_channel, 3);
+  for (G4int i = 0; i < fEscapeOther; ++i) analysisManager->FillH1(gID_H1_escape_channel, 4);
+  
+  // === 论文所需：填充每事件产生的光子数 ===
+  analysisManager->FillH1(gID_H1_photon_generated, fPhotonGenerated);
 
   processedTrackIDs.clear(); // 清空已处理的 track ID (用于统计哪些光子进入数值孔径)
+  photonHitCount.clear();    // 清空撞击次数统计
+  photonPathInCrystal.clear(); // 清空路程统计
     // Print per event (modulo n)
     // 判断是否是主进程，在主进程中打印进度
     if (1) {

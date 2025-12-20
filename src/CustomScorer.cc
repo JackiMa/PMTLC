@@ -243,8 +243,9 @@ SCLightScorer::~SCLightScorer() {}
 G4bool SCLightScorer::ProcessHits(G4Step* aStep, G4TouchableHistory*) {
     G4Track* aTrack = aStep->GetTrack();
     // 确保只处理光子并且产生过程是闪烁
+    const G4VProcess* creator = aTrack->GetCreatorProcess();
     if (aTrack->GetDefinition() == G4OpticalPhoton::Definition() &&
-        aTrack->GetCreatorProcess()->GetProcessName() == "Scintillation") {
+        creator && creator->GetProcessName() == "Scintillation") {
         G4int trackID = aTrack->GetTrackID();
         // 检查光子是否已经处理过
         if (processedTrackIDs.find(trackID) == processedTrackIDs.end()) {
@@ -276,8 +277,9 @@ CherenkovLightScorer::~CherenkovLightScorer() {}
 G4bool CherenkovLightScorer::ProcessHits(G4Step* aStep, G4TouchableHistory*) {
     G4Track* aTrack = aStep->GetTrack();
     // 确保只处理光子并且是切伦科夫光子
+    const G4VProcess* creator = aTrack->GetCreatorProcess();
     if (aTrack->GetDefinition() == G4OpticalPhoton::Definition() &&
-        aTrack->GetCreatorProcess()->GetProcessName() == "Cerenkov") {
+        creator && creator->GetProcessName() == "Cerenkov") {
         G4int trackID = aTrack->GetTrackID();
         // 检查光子是否已经处理过
         if (processedTrackIDs.find(trackID) == processedTrackIDs.end()) {

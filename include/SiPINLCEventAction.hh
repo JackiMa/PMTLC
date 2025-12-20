@@ -38,6 +38,7 @@
 #include "globals.hh"
 
 #include <set>
+#include <map>
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
@@ -58,6 +59,12 @@ class SiPINLCEventAction : public G4UserEventAction
 
   // 用于考虑光子是否穿过数值孔径，记录trackID，避免重复统计
   std::set<G4int> processedTrackIDs;
+  
+  // === 论文所需：追踪每个光子撞击SiPIN的次数 ===
+  std::map<G4int, G4int> photonHitCount;  // trackID -> 撞击次数
+  
+  // === 论文所需：追踪每个光子在晶体内的路程 ===
+  std::map<G4int, G4double> photonPathInCrystal;  // trackID -> 晶体内累计路程 (mm)
 
   // data members
   G4int fAbsoEdepHCID = -1;
@@ -68,7 +75,15 @@ class SiPINLCEventAction : public G4UserEventAction
   G4int fEdepInCrystal = -1;
   G4int fEngPassingSD1 = -1;
 
-  G4int fLightCollection = -1;
+  G4int fLightCollection = 0;
+  
+  // === 论文所需的统计量 ===
+  G4int fPhotonGenerated = 0;     // 本事件产生的闪烁光子数
+  G4int fEscapeAbsorbed = 0;      // 被晶体自吸收的光子数
+  G4int fEscapeTopAir = 0;        // 从顶面空气层逃逸的光子数
+  G4int fEscapeSideAir = 0;       // 从侧面空气层逃逸的光子数
+  G4int fEscapePTFE = 0;          // 被PTFE吸收的光子数
+  G4int fEscapeOther = 0;         // 其他损失通道
 
 };
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......

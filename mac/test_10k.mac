@@ -1,0 +1,4 @@
+/SiPINLC/geometry/greaseThickness 0.05 mm
+/SiPINLC/geometry/topAirGap 0.10 mm
+/run/initialize
+/run/beamOn 10000
