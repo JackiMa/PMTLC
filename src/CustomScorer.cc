@@ -382,7 +382,9 @@ G4bool siScorer::ProcessHits(G4Step* aStep, G4TouchableHistory*) {
             G4String preVolumeName = preStepPoint->GetTouchableHandle()->GetVolume()->GetName();
             G4String postVolumeName = postStepPoint->GetTouchableHandle()->GetVolume()->GetName();
 
-            if (preVolumeName == gN_sipin_window && postVolumeName == gN_sipin_si) {
+            // 你的物理假设：直接处理 grease(or bottom airgap) → Si 的界面
+            if ((postVolumeName == gN_sipin_si) &&
+                (preVolumeName == "optical_grease" || preVolumeName == "sc_gap")) {
                 G4ThreeVector postPosition = postStepPoint->GetPosition();
                 G4double x = postPosition.x();
                 G4double y = postPosition.y();

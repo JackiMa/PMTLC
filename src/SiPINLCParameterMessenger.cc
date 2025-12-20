@@ -13,6 +13,7 @@
 #include "G4UIcmdWithADoubleAndUnit.hh"
 #include "G4UIcmdWithABool.hh"
 #include "G4UIcmdWithAnInteger.hh"
+#include "G4UIcmdWithAString.hh"
 #include "G4SystemOfUnits.hh"
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
@@ -30,6 +31,10 @@ SiPINLCParameterMessenger::SiPINLCParameterMessenger()
     // Material subdirectory
     fMaterialDir = new G4UIdirectory("/SiPINLC/material/");
     fMaterialDir->SetGuidance("Material parameter control.");
+
+    // SiPIN subdirectory (P_det / TMM boundary)
+    fSipinDir = new G4UIdirectory("/SiPINLC/sipin/");
+    fSipinDir->SetGuidance("SiPIN boundary (P_det) model control.");
 
     // === Geometry Commands ===
     
@@ -101,6 +106,31 @@ SiPINLCParameterMessenger::SiPINLCParameterMessenger()
     fPTFEReflectivityCmd->SetParameterName("reflectivity", false);
     fPTFEReflectivityCmd->SetRange("reflectivity>=0. && reflectivity<=1.");
     fPTFEReflectivityCmd->AvailableForStates(G4State_PreInit, G4State_Idle);
+
+    // === SiPIN P_det model ===
+    fSipinPdetModeCmd = new G4UIcmdWithAnInteger("/SiPINLC/sipin/pdetMode", this);
+    fSipinPdetModeCmd->SetGuidance("Set SiPIN P_det mode: 0=off(legacy), 1=const, 2=csv-table.");
+    fSipinPdetModeCmd->SetParameterName("mode", false);
+    fSipinPdetModeCmd->SetRange("mode>=0 && mode<=2");
+    fSipinPdetModeCmd->AvailableForStates(G4State_PreInit, G4State_Idle);
+
+    fSipinPdetConstCmd = new G4UIcmdWithADouble("/SiPINLC/sipin/pdetConst", this);
+    fSipinPdetConstCmd->SetGuidance("Set constant P_det used when pdetMode=1.");
+    fSipinPdetConstCmd->SetParameterName("pdet", false);
+    fSipinPdetConstCmd->SetRange("pdet>=0. && pdet<=1.");
+    fSipinPdetConstCmd->AvailableForStates(G4State_PreInit, G4State_Idle);
+
+    fSipinPdetFileCmd = new G4UIcmdWithAString("/SiPINLC/sipin/pdetFile", this);
+    fSipinPdetFileCmd->SetGuidance("Set CSV file path for P_det(λ_nm, θ_deg) when pdetMode=2.");
+    fSipinPdetFileCmd->SetParameterName("path", false);
+    fSipinPdetFileCmd->AvailableForStates(G4State_PreInit, G4State_Idle);
+
+    fSipinMaxInterfaceHitsCmd = new G4UIcmdWithAnInteger("/SiPINLC/sipin/maxInterfaceHits", this);
+    fSipinMaxInterfaceHitsCmd->SetGuidance("Safety cap: maximum number of grease/airgap -> Si interface hits per photon.");
+    fSipinMaxInterfaceHitsCmd->SetGuidance("Used to prevent extremely long runs when p_det is small (manual reflection model).");
+    fSipinMaxInterfaceHitsCmd->SetParameterName("n", false);
+    fSipinMaxInterfaceHitsCmd->SetRange("n>=0");
+    fSipinMaxInterfaceHitsCmd->AvailableForStates(G4State_PreInit, G4State_Idle);
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
@@ -115,8 +145,13 @@ SiPINLCParameterMessenger::~SiPINLCParameterMessenger()
     delete fAbsorptionScaleCmd;
     delete fEffectiveAbsLengthCmd;
     delete fPTFEReflectivityCmd;
+    delete fSipinPdetModeCmd;
+    delete fSipinPdetConstCmd;
+    delete fSipinPdetFileCmd;
+    delete fSipinMaxInterfaceHitsCmd;
     delete fGeometryDir;
     delete fMaterialDir;
+    delete fSipinDir;
     delete fSiPINLCDir;
 }
 
@@ -177,6 +212,27 @@ void SiPINLCParameterMessenger::SetNewValue(G4UIcommand* command, G4String newVa
         G4cout << "=== Parameter Update ===" << G4endl;
         G4cout << "PTFE reflectivity: " << refl*100 << "%" << G4endl;
         G4cout << "NOTE: Requires geometry rebuild (/run/reinitializeGeometry)" << G4endl;
+    }
+    // SiPIN P_det model
+    else if (command == fSipinPdetModeCmd) {
+        g_sipin_pdet_mode = fSipinPdetModeCmd->GetNewIntValue(newValue);
+        G4cout << "=== Parameter Update ===" << G4endl;
+        G4cout << "SiPIN P_det mode set to: " << g_sipin_pdet_mode << " (0=off,1=const,2=csv)" << G4endl;
+    }
+    else if (command == fSipinPdetConstCmd) {
+        g_sipin_pdet_const = fSipinPdetConstCmd->GetNewDoubleValue(newValue);
+        G4cout << "=== Parameter Update ===" << G4endl;
+        G4cout << "SiPIN P_det const set to: " << g_sipin_pdet_const << G4endl;
+    }
+    else if (command == fSipinPdetFileCmd) {
+        g_sipin_pdet_csv = newValue;
+        G4cout << "=== Parameter Update ===" << G4endl;
+        G4cout << "SiPIN P_det CSV file set to: " << g_sipin_pdet_csv << G4endl;
+    }
+    else if (command == fSipinMaxInterfaceHitsCmd) {
+        g_sipin_max_interface_hits = fSipinMaxInterfaceHitsCmd->GetNewIntValue(newValue);
+        G4cout << "=== Parameter Update ===" << G4endl;
+        G4cout << "SiPIN max interface hits set to: " << g_sipin_max_interface_hits << G4endl;
     }
 }
 

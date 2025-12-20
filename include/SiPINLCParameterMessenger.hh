@@ -16,6 +16,7 @@ class G4UIcmdWithADouble;
 class G4UIcmdWithADoubleAndUnit;
 class G4UIcmdWithABool;
 class G4UIcmdWithAnInteger;
+class G4UIcmdWithAString;
 
 /// Messenger class for controlling simulation parameters
 /// Allows parameter scanning via MAC scripts
@@ -33,6 +34,7 @@ private:
     G4UIdirectory* fSiPINLCDir;
     G4UIdirectory* fGeometryDir;
     G4UIdirectory* fMaterialDir;
+    G4UIdirectory* fSipinDir;
 
     // Geometry commands
     G4UIcmdWithADoubleAndUnit* fGreaseThicknessCmd;
@@ -45,6 +47,12 @@ private:
     G4UIcmdWithADouble* fAbsorptionScaleCmd;  // 晶体吸收长度缩放系数
     G4UIcmdWithADoubleAndUnit* fEffectiveAbsLengthCmd;  // 等效吸收长度
     G4UIcmdWithADouble* fPTFEReflectivityCmd;  // PTFE反射率
+
+    // SiPIN PDE/TMM boundary model
+    G4UIcmdWithAnInteger* fSipinPdetModeCmd;     // 0/1/2
+    G4UIcmdWithADouble*   fSipinPdetConstCmd;    // const p_det
+    G4UIcmdWithAString*   fSipinPdetFileCmd;     // CSV file
+    G4UIcmdWithAnInteger* fSipinMaxInterfaceHitsCmd; // safety cap
 };
 
 #endif

@@ -103,8 +103,48 @@ void SiPINLCPrimaryGeneratorAction::GeneratePrimaries(G4Event* anEvent)
     G4Exception("SiPINLCPrimaryGeneratorAction::GeneratePrimaries()", "SiPINLC_001", FatalException, msg);
   }
 
+  // ========== 调试模式：直接发射 opticalphoton（绕过 UI 命令问题） ==========
+  // 在 config.hh 中设置 g_debug_opticalphoton = true 启用
+  if (g_debug_opticalphoton) {
+    // 获取晶体绝对位置作为光子发射点
+    MyPhysicalVolume* physCrystal = detector->GetMyVolume(gN_sc_crystal);
+    G4ThreeVector crystalPos = physCrystal ? physCrystal->GetAbsolutePosition() : G4ThreeVector(0,0,-10*mm);
+    
+    G4ParticleDefinition* optPhoton = G4ParticleTable::GetParticleTable()->FindParticle("opticalphoton");
+    fParticleGun->SetParticleDefinition(optPhoton);
+    fParticleGun->SetParticleEnergy(3.0*eV);  // ~413 nm，在 GAGG 闪烁谱范围内
+    fParticleGun->SetParticlePosition(crystalPos);
+    fParticleGun->SetParticleMomentumDirection(G4ThreeVector(0, 0, -1));  // 向下，朝 SiPIN
+    // 随机偏振
+    G4double angle = G4UniformRand() * 360.0 * deg;
+    G4ThreeVector polar(std::cos(angle), std::sin(angle), 0);
+    fParticleGun->SetParticlePolarization(polar);
+    fParticleGun->GeneratePrimaryVertex(anEvent);
+    return;
+  }
+
+  // ========== 正常模式：在晶体中心发射 g_primary_particle（默认 662 keV 电子） ==========
+  // 在 config.hh 中设置 g_primary_particle 和 g_primary_energy
+  {
+    MyPhysicalVolume* physCrystal = detector->GetMyVolume(gN_sc_crystal);
+    G4ThreeVector crystalPos = physCrystal ? physCrystal->GetAbsolutePosition() : G4ThreeVector(0,0,-10*mm);
+    
+    G4ParticleDefinition* particle = G4ParticleTable::GetParticleTable()->FindParticle(g_primary_particle);
+    if (!particle) {
+      particle = G4ParticleTable::GetParticleTable()->FindParticle("e-");
+    }
+    fParticleGun->SetParticleDefinition(particle);
+    fParticleGun->SetParticleEnergy(g_primary_energy);
+    fParticleGun->SetParticlePosition(crystalPos);
+    // 电子方向：可以固定向下，或者各向同性（这里先固定向下）
+    fParticleGun->SetParticleMomentumDirection(G4ThreeVector(0, 0, -1));
+    fParticleGun->GeneratePrimaryVertex(anEvent);
+    return;
+  }
+
+  // 以下是旧代码，保留但不再执行
   // 如果用户用 /gun/particle opticalphoton 做快速调试，则完全信任 /gun/* 参数
-  // 不在这里覆盖 position/direction/energy，避免“光子明明从晶体发射却被我们改到世界顶上”等问题。
+  // 不在这里覆盖 position/direction/energy，避免"光子明明从晶体发射却被我们改到世界顶上"等问题。
   if (useParticleGun) {
     auto* def = fParticleGun->GetParticleDefinition();
     if (def && def->GetParticleName() == "opticalphoton") {

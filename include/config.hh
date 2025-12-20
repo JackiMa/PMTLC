@@ -35,12 +35,37 @@ inline G4OpticalSurface *surf_Lreflex = MyMaterials::surf_Teflon(0.4);
 inline G4bool g_has_opticalPhysics = true;  // 是否模拟光学过程
 inline G4bool g_has_cherenkov = false;       // 是否考虑切伦科夫光
 
+// ========== 调试开关：直接发射 opticalphoton（绕过 UI 命令问题） ==========
+// 设为 true 时，PrimaryGeneratorAction 会直接在晶体中心发射 opticalphoton，
+// 方向向下（-z），能量 3 eV（约 413 nm）。用于验证 P_det hook。
+// 设为 false 时，恢复正常的 gamma/electron 源逻辑。
+inline G4bool g_debug_opticalphoton = false;  // ← 已切回正常源
+
+// ========== 基准源参数 ==========
+// 正常模式下（g_debug_opticalphoton=false）使用的粒子类型和能量
+// 按你的要求：GAGG 中心 662 keV 电子激发闪烁谱
+inline G4String g_primary_particle = "e-";    // 粒子类型
+inline G4double g_primary_energy = 662*keV;   // 粒子能量
+
 inline G4String g_gdml_name = "";  // GDML文件名 ==''表示不保存GDML文件
 inline G4double g_grease_thickness = 0.05*mm;  // 导光油厚度, >10*um表示有导光油 (论文基准值50μm)
 // 晶体与 SiPIN 之间如果“没有 grease”，按经验应存在一层很薄的空气层（避免晶体直接接触窗口材料）
 inline G4double g_bottom_airgap_thickness = 10*um;  // 默认 10um，可调
 inline G4double g_top_airgap_thickness = 0.1*mm;  // 顶面空气层厚度 (论文基准值100μm)
 inline G4double g_side_contact_ratio = 0.5;  // 侧面贴合比例 0~1, 用于概率边界法 (论文基准值50%)
+
+// SiPIN 探测概率模型（用于 grease(or airgap) → Si 界面）
+// p_det = 1 - R(λ,θ) 由你拟合 Si3N4 厚度的 TMM + 厂商 QE 得到
+// mode:
+//   0: 关闭（保持“几何到达就计数+kill”的旧行为，仅用于debug）
+//   1: 常数 p_det = g_sipin_pdet_const（单元验证用）
+//   2: CSV 查表 p_det(λ_nm, θ_deg)（真实模型）
+inline G4int g_sipin_pdet_mode = 2;  // 1=常数模式, 2=CSV查表
+inline G4double g_sipin_pdet_const = 1.0;  // 常数模式参数（mode=2时不用）
+inline G4String g_sipin_pdet_csv = "spectrum/sipin_pdet_dummy.csv";  // CSV 查表文件
+// 防止 p_det 很小/为0 时光子在 Si 界面附近来回反射导致运行时间爆炸
+// 该上限只对 pdetMode!=0 的“手动反射模型”生效；超过后直接 kill（视为未探测到）
+inline G4int g_sipin_max_interface_hits = 20000;
 /*
         ↑ z
         |
@@ -56,20 +81,18 @@ inline G4double g_worldY = 4 * cm;
 inline G4double g_worldZ = 3 * cm;
 inline G4Material *g_world_material = MyMaterials::Air();
 
-// sipin = window + si + ceramics
-// sipin以sipin为母体，包含window、ceramics子体。window包含si，window的下面是ceramics（加电场）
-inline G4String gN_sipin_window = "sipin_window";
+// sipin = si(active) + ceramics(substrate)
+// 顶面直接是 Si，与 grease / bottom airgap 相接触。
+// 说明：此前的 sipin_window 是为了表示“保护窗/封装层”，但你当前物理假设中该层可忽略，
+// 因此这里将界面简化为 grease(or airgap) → Si。
 inline G4String gN_sipin_si = "sipin_si";
 inline G4String gN_sipin_ceramics = "sipin_ceramics";
 inline G4double g_sipin_X = 1 * cm;
 inline G4double g_sipin_Y = 1 * cm;
 inline G4double g_si_thickness = 0.3*mm; // TBD
-inline G4double g_window_thickness = g_si_thickness + 0.2*mm; // TBD
 inline G4double g_ceramics_thickness = 1*mm; // TBD
-inline G4double g_sipin_thickness = g_window_thickness+g_ceramics_thickness;
+inline G4double g_sipin_thickness = g_si_thickness + g_ceramics_thickness;
 inline G4ThreeVector g_sipin_pos = G4ThreeVector(0, 0, -0.5*g_worldZ + 0.5*g_sipin_thickness + 1*mm); 
-inline G4Material *g_window_material = MyMaterials::PMMA(); // TBD
-// inline G4Material *g_window_material = MyMaterials::Borosilicate(); // TBD
 inline G4Material *g_si_material = MyMaterials::Silicon(); // TBD
 // inline G4Material *g_si_material = MyMaterials::Air(); // TBD
 inline G4Material *g_ceramics = MyMaterials::PVC();
@@ -81,7 +104,7 @@ inline G4String gN_sc_crystal = "Scintillator_crystal";
 // inline ReflectorType g_wrapper_Type = CYLINDER; // 反光罩类型
 inline ReflectorType g_wrapper_Type = TEFLON; // 反光罩类型
 inline G4double g_gap_thickness = 0.1*mm;
-inline G4double g_wrapper_thickness = 2*mm;
+inline G4double g_wrapper_thickness = 1*mm;
 inline G4double g_crystalX = 0.5 * cm;  
 inline G4double g_crystalY = 0.5 * cm;
 inline G4double g_crystalZ = 0.5 * cm;                                                  

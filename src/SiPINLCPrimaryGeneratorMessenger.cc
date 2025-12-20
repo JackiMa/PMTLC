@@ -58,10 +58,12 @@ SiPINLCPrimaryGeneratorMessenger::SiPINLCPrimaryGeneratorMessenger(
   fPolarCmd->SetDefaultUnit("deg");
   fPolarCmd->AvailableForStates(G4State_Idle);
 
-    fSetUseParticleGunCmd = new G4UIcmdWithABool("/SiPINLC/generator/useParticleGun", this);
+    // Put this under /SiPINLC/gun/ to avoid relying on a missing /SiPINLC/generator/ directory.
+    fSetUseParticleGunCmd = new G4UIcmdWithABool("/SiPINLC/gun/useParticleGun", this);
     fSetUseParticleGunCmd->SetGuidance("Set whether to use ParticleGun or GPS.");
     fSetUseParticleGunCmd->SetParameterName("useParticleGun", true);
     fSetUseParticleGunCmd->SetDefaultValue(true);
+    fSetUseParticleGunCmd->AvailableForStates(G4State_PreInit, G4State_Idle);
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......

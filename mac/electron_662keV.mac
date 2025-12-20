@@ -1,0 +1,18 @@
+# 基准源：GAGG 中心 662 keV 电子激发闪烁谱
+# 在 config.hh 中设置：
+#   g_debug_opticalphoton = false
+#   g_primary_particle = "e-"
+#   g_primary_energy = 662*keV
+#   g_sipin_pdet_mode = 2  (CSV 查表)
+#   g_sipin_pdet_csv = "spectrum/sipin_pdet_dummy.csv"
+#
+/control/verbose 0
+/run/verbose 0
+/tracking/verbose 0
+/process/optical/verbose 0
+#
+/run/initialize
+#
+# 跑 2 个事件（每个事件产生约几千个闪烁光子，用于快速测试）
+/run/beamOn 2
+

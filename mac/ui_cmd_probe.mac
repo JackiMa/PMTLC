@@ -1,0 +1,10 @@
+/control/verbose 2
+/run/verbose 0
+#
+# Probe whether UI commands exist
+/control/manual /SiPINLC/gun/optPhotonPolar
+/control/manual /SiPINLC/gun/useParticleGun
+#
+/run/quit
+
+

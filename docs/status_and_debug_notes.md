@@ -122,7 +122,7 @@ Z gaps (um): (wrapper_bot - sipin_top)=0 (gap_bot - wrapper_bot)=0 ... (crystal_
 - `SipinPDETable.hh/.cc`
 
 建议路线（先简单可控，后工程化）：
-- **阶段 A（stepping hook）**：在 `UserSteppingAction` 中捕获 `grease -> sipin_window` 边界，计算 `(λ,θ)`，查表得 `p_det`，以 `U<p_det` 计为“探测到”并 kill。
+- **阶段 A（stepping hook）**：在 `UserSteppingAction` 中捕获 `grease(or bottom airgap) -> sipin_si` 边界，计算 `(λ,θ)`，查表得 `p_det`，以 `U<p_det` 计为“探测到”并 kill；否则镜面反射回去（对应 \(1-p_{det}\) 的反射概率）。
 - **阶段 B（更稳）**：实现自定义边界 process 替换 `G4OpBoundaryProcess`，避免重复反射/重复改变动量。
 
 #### 6.3 用“合成 PDE 表”做单元级校验

@@ -83,24 +83,16 @@ G4VPhysicalVolume *SiPINLCDetectorConstruction::Construct()
   MyPhysicalVolume *p_sipin = new MyPhysicalVolume(0, g_sipin_pos, name, l_sipin, p_world, false, 0, checkOverlaps);
   fVolumeMap[name] = p_sipin;
 
-  // sipin - window
-  name = gN_sipin_window;
-  G4Box *s_window = new G4Box(name, 0.5 * g_sipin_X, 0.5 * g_sipin_Y, 0.5 * g_window_thickness);
-  G4LogicalVolume *l_window = new G4LogicalVolume(s_window, g_window_material, name);
-  MyPhysicalVolume *p_window = new MyPhysicalVolume(0, G4ThreeVector(0, 0, 0.5 * g_sipin_thickness - 0.5 * g_window_thickness), name, l_window, p_sipin, false, 0, checkOverlaps);
-  fVolumeMap[name] = p_window;
-
-  // 设置 window 的颜色为棕色
-  G4VisAttributes *windowVisAtt = new G4VisAttributes(G4Colour(0.6, 0.3, 0.0, 0.3)); // 棕色
-  windowVisAtt->SetForceSolid(true);
-  windowVisAtt->SetVisibility(true);
-  l_window->SetVisAttributes(windowVisAtt);
-
-  // sipin - window - si
+  // sipin - si (active)
+  // 顶面直接是 Si，与 grease / bottom airgap 相接触（用于 grease→Si 的 TMM/PDE 处理）。
   name = gN_sipin_si;
   G4Box *s_si = new G4Box(name, 0.5 * g_sipin_X, 0.5 * g_sipin_Y, 0.5 * g_si_thickness);
   G4LogicalVolume *l_si = new G4LogicalVolume(s_si, g_si_material, name);
-  MyPhysicalVolume *p_si = new MyPhysicalVolume(0, G4ThreeVector(0, 0, -0.5 * g_window_thickness + 0.5 * g_si_thickness), name, l_si, p_window, false, 0, checkOverlaps);
+  // 将 Si 放在 sipin 顶部：Si 上表面与 sipin 上表面齐平
+  MyPhysicalVolume *p_si = new MyPhysicalVolume(
+      0,
+      G4ThreeVector(0, 0, 0.5 * g_sipin_thickness - 0.5 * g_si_thickness),
+      name, l_si, p_sipin, false, 0, checkOverlaps);
   fVolumeMap[name] = p_si;
 
   // 设置 si 的颜色为银色

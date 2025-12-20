@@ -1,0 +1,13 @@
+# 调试宏：使用 g_debug_opticalphoton = true 模式
+# 光子从晶体中心发射，方向向下，能量 3 eV
+# 在 config.hh 中控制 g_sipin_pdet_mode 和 g_sipin_pdet_const
+#
+/control/verbose 0
+/run/verbose 0
+/tracking/verbose 0
+/process/optical/verbose 0
+#
+/run/initialize
+#
+/run/beamOn 1000
+
