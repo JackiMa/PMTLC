@@ -26,7 +26,8 @@ enum ReflectorType {
 // surface properties
 inline G4OpticalSurface *surf_ESR = MyMaterials::surf_ESR();
 // PTFE反射率：论文中使用97.5%反射率 (2.5%透过率)
-inline G4OpticalSurface *surf_Hreflex = MyMaterials::surf_Teflon(0.025);  // 97.5% reflectivity
+// 调试：临时改为 100% 反射率，排除 PTFE 透过损失
+inline G4OpticalSurface *surf_Hreflex = MyMaterials::surf_Teflon(0.0);  // 100% reflectivity (debug)
 inline G4OpticalSurface *surf_Lreflex = MyMaterials::surf_Teflon(0.4);
 
 // g_ means global_
@@ -39,7 +40,7 @@ inline G4bool g_has_cherenkov = false;       // 是否考虑切伦科夫光
 // 设为 true 时，PrimaryGeneratorAction 会直接在晶体中心发射 opticalphoton，
 // 方向向下（-z），能量 3 eV（约 413 nm）。用于验证 P_det hook。
 // 设为 false 时，恢复正常的 gamma/electron 源逻辑。
-inline G4bool g_debug_opticalphoton = false;  // ← 已切回正常源
+inline G4bool g_debug_opticalphoton = true;  // ← 调试模式：发射单色光子
 
 // ========== 基准源参数 ==========
 // 正常模式下（g_debug_opticalphoton=false）使用的粒子类型和能量
@@ -48,7 +49,7 @@ inline G4String g_primary_particle = "e-";    // 粒子类型
 inline G4double g_primary_energy = 662*keV;   // 粒子能量
 
 inline G4String g_gdml_name = "";  // GDML文件名 ==''表示不保存GDML文件
-inline G4double g_grease_thickness = 0.05*mm;  // 导光油厚度, >10*um表示有导光油 (论文基准值50μm)
+inline G4double g_grease_thickness = 0*mm;  // 无grease，测试底部空气层场景
 // 晶体与 SiPIN 之间如果“没有 grease”，按经验应存在一层很薄的空气层（避免晶体直接接触窗口材料）
 inline G4double g_bottom_airgap_thickness = 10*um;  // 默认 10um，可调
 inline G4double g_top_airgap_thickness = 0.1*mm;  // 顶面空气层厚度 (论文基准值100μm)
@@ -111,7 +112,7 @@ inline G4double g_crystalZ = 0.5 * cm;
 inline G4Material *g_wrapper_material = MyMaterials::PVC(); 
 // inline G4Material *g_crystal_material = MyMaterials::PVC(); 
 // inline G4Material *g_crystal_material = MyMaterials::LuAG_Ce(); 
-inline G4Material *g_crystal_material = MyMaterials::GAGG_Ce_Mg(20000, 1, -1); 
+inline G4Material *g_crystal_material = MyMaterials::GAGG_Ce_Mg(20000, 1, -1);  // 恢复正常吸收长度 
 // inline G4Material *g_crystal_material = MyMaterials::LYSO(35000, 1, -1); 
 // inline G4Material *g_crystal_material = MyMaterials::BGO(8000, 1, -1); 
 // inline G4Material *g_crystal_material = MyMaterials::CsI_Tl(30000, 1, -1); 

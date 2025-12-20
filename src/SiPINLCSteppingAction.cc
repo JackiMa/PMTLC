@@ -94,11 +94,25 @@ void SiPINLCSteppingAction::UserSteppingAction(const G4Step *step)
             fEventAction->photonPathInCrystal[trackID] += stepLength;
         }
         
+        // DEBUG: 追踪光子从晶体底面出来后的路径
+        static G4int debugPathCount = 0;
+        if (debugPathCount < 20 && 
+            (preVolumeName == gN_sc_crystal || preVolumeName == "sc_gap" || preVolumeName == "optical_grease") &&
+            preStepPoint->GetPosition().z() < -12.0*mm)  // 接近底面
+        {
+            G4cout << "[PATH] #" << debugPathCount++ 
+                   << " pre=" << preVolumeName 
+                   << " post=" << postVolumeName
+                   << " z=" << preStepPoint->GetPosition().z()/mm << "mm"
+                   << G4endl;
+        }
+        
         // === 论文所需：统计光子撞击SiPIN的次数和入射角 ===
         // 你的物理假设：直接处理 grease(or bottom airgap) → Si 的界面
+        // 注意：Grease 和 sc_bottom_gap 现在放在 World 中，直接与 sipin_si 接触
         const G4bool hitSipinSiInterface =
             (postVolumeName == gN_sipin_si) &&
-            (preVolumeName == "optical_grease" || preVolumeName == "sc_gap");
+            (preVolumeName == "optical_grease" || preVolumeName == "sc_gap" || preVolumeName == "sc_bottom_gap");
 
         // 每次撞击都统计（不管是否最终被“探测/吸收”）
         if (hitSipinSiInterface)
@@ -278,6 +292,19 @@ void SiPINLCSteppingAction::UserSteppingAction(const G4Step *step)
             {
                 // 在晶体内被吸收
                 fEventAction->fEscapeAbsorbed++;
+                // 调试输出：打印前10个被"晶体吸收"的光子的详细信息
+                static G4int debugCount = 0;
+                if (debugCount < 10) {
+                    const G4VProcess* proc = postStepPoint->GetProcessDefinedStep();
+                    G4String procName = proc ? proc->GetProcessName() : "unknown";
+                    G4cout << "[DEBUG] CrystalAbsorbed #" << debugCount 
+                           << " pos=" << preStepPoint->GetPosition()/mm << " mm"
+                           << " dir=" << aTrack->GetMomentumDirection()
+                           << " process=" << procName
+                           << " postVol=" << postVolumeName
+                           << G4endl;
+                    debugCount++;
+                }
             }
             else if (preVolumeName == gN_sc_wrapper)
             {

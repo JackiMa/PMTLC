@@ -112,13 +112,24 @@ void SiPINLCPrimaryGeneratorAction::GeneratePrimaries(G4Event* anEvent)
     
     G4ParticleDefinition* optPhoton = G4ParticleTable::GetParticleTable()->FindParticle("opticalphoton");
     fParticleGun->SetParticleDefinition(optPhoton);
-    fParticleGun->SetParticleEnergy(3.0*eV);  // ~413 nm，在 GAGG 闪烁谱范围内
+    fParticleGun->SetParticleEnergy(2.0*eV);  // ~620 nm，吸收长度约360mm，用于验证自吸收
     fParticleGun->SetParticlePosition(crystalPos);
-    fParticleGun->SetParticleMomentumDirection(G4ThreeVector(0, 0, -1));  // 向下，朝 SiPIN
-    // 随机偏振
-    G4double angle = G4UniformRand() * 360.0 * deg;
-    G4ThreeVector polar(std::cos(angle), std::sin(angle), 0);
+    
+    // *** 各向同性发射（球面均匀）***
+    // cosTheta 在 [-1, 1] 均匀分布，phi 在 [0, 2π] 均匀分布
+    G4double cosTheta = 2.0 * G4UniformRand() - 1.0;  // [-1, 1]
+    G4double sinTheta = std::sqrt(1.0 - cosTheta * cosTheta);
+    G4double phi = 2.0 * CLHEP::pi * G4UniformRand();
+    G4ThreeVector direction(sinTheta * std::cos(phi), sinTheta * std::sin(phi), cosTheta);
+    fParticleGun->SetParticleMomentumDirection(direction);
+    
+    // 随机偏振（垂直于传播方向）
+    G4ThreeVector e1 = direction.orthogonal().unit();
+    G4ThreeVector e2 = direction.cross(e1).unit();
+    G4double polarAngle = G4UniformRand() * 360.0 * deg;
+    G4ThreeVector polar = std::cos(polarAngle) * e1 + std::sin(polarAngle) * e2;
     fParticleGun->SetParticlePolarization(polar);
+    
     fParticleGun->GeneratePrimaryVertex(anEvent);
     return;
   }
