@@ -23,16 +23,16 @@
 // * acceptance of all terms of the Geant4 Software license.          *
 // ********************************************************************
 //
-/// \file PMTLC/src/PMTLCPrimaryGeneratorMessenger.cc
-/// \brief Implementation of the PMTLCPrimaryGeneratorMessenger class
+/// \file SiPINLC/src/SiPINLCPrimaryGeneratorMessenger.cc
+/// \brief Implementation of the SiPINLCPrimaryGeneratorMessenger class
 //
 //
 //
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
-#include "PMTLCPrimaryGeneratorMessenger.hh"
-#include "PMTLCPrimaryGeneratorAction.hh"
+#include "SiPINLCPrimaryGeneratorMessenger.hh"
+#include "SiPINLCPrimaryGeneratorAction.hh"
 #include "G4SystemOfUnits.hh"
 #include "G4UIcmdWithADoubleAndUnit.hh"
 #include "G4UIdirectory.hh"
@@ -40,16 +40,16 @@
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
-PMTLCPrimaryGeneratorMessenger::PMTLCPrimaryGeneratorMessenger(
-  PMTLCPrimaryGeneratorAction* PMTLCGun)
+SiPINLCPrimaryGeneratorMessenger::SiPINLCPrimaryGeneratorMessenger(
+  SiPINLCPrimaryGeneratorAction* SiPINLCGun)
   : G4UImessenger()
-  , fPMTLCAction(PMTLCGun)
+  , fSiPINLCAction(SiPINLCGun)
 {
-  fGunDir = new G4UIdirectory("/PMTLC/gun/");
+  fGunDir = new G4UIdirectory("/SiPINLC/gun/");
   fGunDir->SetGuidance("PrimaryGenerator control");
 
   fPolarCmd =
-    new G4UIcmdWithADoubleAndUnit("/PMTLC/gun/optPhotonPolar", this);
+    new G4UIcmdWithADoubleAndUnit("/SiPINLC/gun/optPhotonPolar", this);
   fPolarCmd->SetGuidance("Set linear polarization");
   fPolarCmd->SetGuidance("  angle w.r.t. (k,n) plane");
   fPolarCmd->SetParameterName("angle", true);
@@ -58,7 +58,7 @@ PMTLCPrimaryGeneratorMessenger::PMTLCPrimaryGeneratorMessenger(
   fPolarCmd->SetDefaultUnit("deg");
   fPolarCmd->AvailableForStates(G4State_Idle);
 
-    fSetUseParticleGunCmd = new G4UIcmdWithABool("/PMTLC/generator/useParticleGun", this);
+    fSetUseParticleGunCmd = new G4UIcmdWithABool("/SiPINLC/generator/useParticleGun", this);
     fSetUseParticleGunCmd->SetGuidance("Set whether to use ParticleGun or GPS.");
     fSetUseParticleGunCmd->SetParameterName("useParticleGun", true);
     fSetUseParticleGunCmd->SetDefaultValue(true);
@@ -66,7 +66,7 @@ PMTLCPrimaryGeneratorMessenger::PMTLCPrimaryGeneratorMessenger(
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
-PMTLCPrimaryGeneratorMessenger::~PMTLCPrimaryGeneratorMessenger()
+SiPINLCPrimaryGeneratorMessenger::~SiPINLCPrimaryGeneratorMessenger()
 {
   delete fPolarCmd;
   delete fGunDir;
@@ -75,7 +75,7 @@ PMTLCPrimaryGeneratorMessenger::~PMTLCPrimaryGeneratorMessenger()
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
-void PMTLCPrimaryGeneratorMessenger::SetNewValue(G4UIcommand* command,
+void SiPINLCPrimaryGeneratorMessenger::SetNewValue(G4UIcommand* command,
                                                     G4String newValue)
 {
   if(command == fPolarCmd)
@@ -83,16 +83,16 @@ void PMTLCPrimaryGeneratorMessenger::SetNewValue(G4UIcommand* command,
     G4double angle = fPolarCmd->GetNewDoubleValue(newValue);
     if(angle == -360.0 * deg)
     {
-      fPMTLCAction->SetOptPhotonPolar();
+      fSiPINLCAction->SetOptPhotonPolar();
     }
     else
     {
-      fPMTLCAction->SetOptPhotonPolar(angle);
+      fSiPINLCAction->SetOptPhotonPolar(angle);
     }
   }
     if (command == fSetUseParticleGunCmd)
     {
-        fPMTLCAction->SetUseParticleGun(fSetUseParticleGunCmd->GetNewBoolValue(newValue));
+        fSiPINLCAction->SetUseParticleGun(fSetUseParticleGunCmd->GetNewBoolValue(newValue));
     }
 }
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......

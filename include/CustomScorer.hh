@@ -134,10 +134,10 @@ public:
 };
 
 
-class PhotocathodeScorer : public G4VPrimitiveScorer {
+class siScorer : public G4VPrimitiveScorer {
 public:
-    PhotocathodeScorer(const G4String& name, const G4int fillH1Id,const G4int fillH2Id, G4int depth = 0);
-    virtual ~PhotocathodeScorer();
+    siScorer(const G4String& name, const G4int fillH1Id,const G4int fillH2Id, G4int depth = 0);
+    virtual ~siScorer();
     virtual void EndOfEvent(G4HCofThisEvent*) override;
     virtual G4bool ProcessHits(G4Step* aStep, G4TouchableHistory*);
 

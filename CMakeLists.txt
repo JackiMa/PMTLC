@@ -1,7 +1,7 @@
 #----------------------------------------------------------------------------
 # Setup the project
 cmake_minimum_required(VERSION 3.16...3.21)
-project(PMTLC)
+project(SiPINLC)
 #add_definitions(-DGEANT4_USE_GDML)
 add_compile_definitions(GEANT4_USE_GDML)
 #make using gdml the default
@@ -38,31 +38,31 @@ endif()
 file(GLOB macros ${PROJECT_SOURCE_DIR}/*.mac)
 file(GLOB inputs ${PROJECT_SOURCE_DIR}/*.in)
 if (NOT GEANT4_USE_GDML)
-list(REMOVE_ITEM sources ${PROJECT_SOURCE_DIR}/src/PMTLCGDMLDetectorConstructionMessenger.cc)
-list(REMOVE_ITEM sources ${PROJECT_SOURCE_DIR}/src/PMTLCGDMLDetectorConstruction.cc)
-list(REMOVE_ITEM headers ${PROJECT_SOURCE_DIR}/include/PMTLCGDMLDetectorConstructionMessenger.hh)
-list(REMOVE_ITEM headers ${PROJECT_SOURCE_DIR}/include/PMTLCGDMLDetectorConstruction.hh)
+list(REMOVE_ITEM sources ${PROJECT_SOURCE_DIR}/src/SiPINLCGDMLDetectorConstructionMessenger.cc)
+list(REMOVE_ITEM sources ${PROJECT_SOURCE_DIR}/src/SiPINLCGDMLDetectorConstruction.cc)
+list(REMOVE_ITEM headers ${PROJECT_SOURCE_DIR}/include/SiPINLCGDMLDetectorConstructionMessenger.hh)
+list(REMOVE_ITEM headers ${PROJECT_SOURCE_DIR}/include/SiPINLCGDMLDetectorConstruction.hh)
 endif()
 #----------------------------------------------------------------------------
 # Add the executable, and link it to the Geant4 libraries
 #
-add_executable(PMTLC PMTLC.cc ${sources} ${headers})
-target_link_libraries(PMTLC ${Geant4_LIBRARIES} )
+add_executable(SiPINLC SiPINLC.cc ${sources} ${headers})
+target_link_libraries(SiPINLC ${Geant4_LIBRARIES} )
 
 #----------------------------------------------------------------------------
 # Copy all scripts to the build directory, i.e. the directory in which we
-# build PMTLC. This is so that we can run the executable directly because it
+# build SiPINLC. This is so that we can run the executable directly because it
 # relies on these scripts being in the current working directory.
 #
-set(PMTLC_SCRIPTS
-    PMTLC.out
-    PMTLC.in
+set(SiPINLC_SCRIPTS
+    SiPINLC.out
+    SiPINLC.in
     optPhoton.mac
     gui.mac
     vis.mac
   )
 
-foreach(_script ${PMTLC_SCRIPTS})
+foreach(_script ${SiPINLC_SCRIPTS})
   configure_file(
     ${PROJECT_SOURCE_DIR}/${_script}
     ${PROJECT_BINARY_DIR}/${_script}
@@ -73,7 +73,7 @@ endforeach()
 #----------------------------------------------------------------------------
 # Install the executable to 'bin' directory under CMAKE_INSTALL_PREFIX
 #
-install(TARGETS PMTLC DESTINATION bin)
+install(TARGETS SiPINLC DESTINATION bin)
 if (GEANT4_USE_GDML)
 install(FILES ${detectors} ${macros} ${inputs} DESTINATION bin)
 else()

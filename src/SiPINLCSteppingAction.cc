@@ -24,11 +24,11 @@
 // ********************************************************************
 //
 //
-/// \file PMTLCSteppingAction.cc
-/// \brief Implementation of the PMTLCSteppingAction class
+/// \file SiPINLCSteppingAction.cc
+/// \brief Implementation of the SiPINLCSteppingAction class
 
-#include "PMTLCSteppingAction.hh"
-#include "PMTLCRun.hh"
+#include "SiPINLCSteppingAction.hh"
+#include "SiPINLCRun.hh"
 
 #include "G4Event.hh"
 #include "G4OpBoundaryProcess.hh"
@@ -42,16 +42,16 @@
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
-PMTLCSteppingAction::PMTLCSteppingAction(PMTLCEventAction *event)
+SiPINLCSteppingAction::SiPINLCSteppingAction(SiPINLCEventAction *event)
     : G4UserSteppingAction(), fEventAction(event)
 {
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-PMTLCSteppingAction::~PMTLCSteppingAction() {}
+SiPINLCSteppingAction::~SiPINLCSteppingAction() {}
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-void PMTLCSteppingAction::UserSteppingAction(const G4Step *step)
+void SiPINLCSteppingAction::UserSteppingAction(const G4Step *step)
 {
     G4Track *aTrack = step->GetTrack();
 
@@ -68,7 +68,7 @@ void PMTLCSteppingAction::UserSteppingAction(const G4Step *step)
 
             G4String preVolumeName = preStepPoint->GetTouchableHandle()->GetVolume()->GetName();
             G4String postVolumeName = postStepPoint->GetTouchableHandle()->GetVolume()->GetName();
-            if (preVolumeName == gN_PMT_window && postVolumeName == gN_PMT_photocathode)
+            if (preVolumeName == gN_sipin_window && postVolumeName == gN_sipin_si)
             {
                 G4ThreeVector postPosition = postStepPoint->GetPosition();
                 G4double x = postPosition.x();
@@ -79,7 +79,7 @@ void PMTLCSteppingAction::UserSteppingAction(const G4Step *step)
 
                 // 记录打到光阴极上的光子信息
                 auto analysisManager = G4AnalysisManager::Instance();
-                analysisManager->FillH1(gID_H1_PMT_wl, wavelength);
+                analysisManager->FillH1(gID_H1_sipin_wl, wavelength);
                 analysisManager->FillH2(gID_H2_photon_pos, x, y);
                 fEventAction->fLightCollection++;
                 

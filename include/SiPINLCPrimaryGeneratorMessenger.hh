@@ -23,23 +23,43 @@
 // * acceptance of all terms of the Geant4 Software license.          *
 // ********************************************************************
 //
+/// \file SiPINLC/include/SiPINLCPrimaryGeneratorMessenger.hh
+/// \brief Definition of the SiPINLCPrimaryGeneratorMessenger class
 //
-/// \file PMTLCActionInitialization.hh
-/// \brief Definition of the PMTLCActionInitialization class
+//
+//
 
-#ifndef PMTLCActionInitialization_h
-#define PMTLCActionInitialization_h 1
+//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
-#include "G4VUserActionInitialization.hh"
+#ifndef SiPINLCPrimaryGeneratorMessenger_h
+#define SiPINLCPrimaryGeneratorMessenger_h 1
 
-class PMTLCActionInitialization : public G4VUserActionInitialization
+#include "globals.hh"
+#include "G4UImessenger.hh"
+
+class SiPINLCPrimaryGeneratorAction;
+class G4UIdirectory;
+class G4UIcmdWithADoubleAndUnit;
+class G4UIcmdWithABool;
+
+//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+
+class SiPINLCPrimaryGeneratorMessenger : public G4UImessenger
 {
  public:
-  PMTLCActionInitialization();
-  ~PMTLCActionInitialization();
+  SiPINLCPrimaryGeneratorMessenger(SiPINLCPrimaryGeneratorAction*);
+  ~SiPINLCPrimaryGeneratorMessenger();
 
-  void BuildForMaster() const override;
-  void Build() const override;
+  void SetNewValue(G4UIcommand*, G4String) override;
+
+ private:
+  SiPINLCPrimaryGeneratorAction* fSiPINLCAction;
+  G4UIdirectory* fGunDir;
+  G4UIcmdWithADoubleAndUnit* fPolarCmd;
+  G4UIcmdWithABool* fSetUseParticleGunCmd;
 };
+
+//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
 #endif

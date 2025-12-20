@@ -6,7 +6,7 @@
 #
 
 /run/initialize
-/PMTLC/generator/useParticleGun true
+/SiPINLC/generator/useParticleGun true
 
 # 设置初级粒子为伽马射线
 /gun/particle gamma
@@ -16,7 +16,7 @@
 # /gun/particle/number 1
 
 # 设置每次gamma的能量
-/gun/energy 511 keV
+/gun/energy 200 keV
 
 # 设置运行次数
-/run/beamOn 10000
+/run/beamOn 500

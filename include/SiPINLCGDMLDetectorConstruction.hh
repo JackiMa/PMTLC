@@ -23,21 +23,21 @@
 // * acceptance of all terms of the Geant4 Software license.          *
 // ********************************************************************
 //
-#ifndef PMTLCGDMLDetectorConstruction_h
-#define PMTLCGDMLDetectorConstruction_h 1
+#ifndef SiPINLCGDMLDetectorConstruction_h
+#define SiPINLCGDMLDetectorConstruction_h 1
 
 #include "G4VUserDetectorConstruction.hh"
 
 class G4GDMLParser;
-class PMTLCDetectorMessenger;
+class SiPINLCDetectorMessenger;
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
-class PMTLCGDMLDetectorConstruction : public G4VUserDetectorConstruction
+class SiPINLCGDMLDetectorConstruction : public G4VUserDetectorConstruction
 {
  public:
-  PMTLCGDMLDetectorConstruction(G4String fname);
-  virtual ~PMTLCGDMLDetectorConstruction();
+  SiPINLCGDMLDetectorConstruction(G4String fname);
+  virtual ~SiPINLCGDMLDetectorConstruction();
 
   void ReadGDML();
   virtual G4VPhysicalVolume* Construct();
@@ -51,10 +51,10 @@ class PMTLCGDMLDetectorConstruction : public G4VUserDetectorConstruction
   G4String GetDumpGdmlFileName() const;
 
  private:
-  PMTLCGDMLDetectorConstruction& operator=(
-    const PMTLCGDMLDetectorConstruction& right);
-  PMTLCGDMLDetectorConstruction(const PMTLCGDMLDetectorConstruction&);
-  PMTLCDetectorMessenger* fDetectorMessenger;
+  SiPINLCGDMLDetectorConstruction& operator=(
+    const SiPINLCGDMLDetectorConstruction& right);
+  SiPINLCGDMLDetectorConstruction(const SiPINLCGDMLDetectorConstruction&);
+  SiPINLCDetectorMessenger* fDetectorMessenger;
   G4GDMLParser* fParser;
 
   G4String fGdmlFile;

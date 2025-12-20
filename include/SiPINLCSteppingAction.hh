@@ -23,69 +23,29 @@
 // * acceptance of all terms of the Geant4 Software license.          *
 // ********************************************************************
 //
-/// \file PMTLC/include/PMTLCPrimaryGeneratorAction.hh
-/// \brief Definition of the PMTLCPrimaryGeneratorAction class
 //
-//
-//
-//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+/// \file SiPINLCSteppingAction.hh
+/// \brief Definition of the SiPINLCSteppingAction class
 
-#ifndef PMTLCPrimaryGeneratorAction_h
-#define PMTLCPrimaryGeneratorAction_h 1
+#ifndef SiPINLCSteppingAction_h
+#define SiPINLCSteppingAction_h 1
 
+#include "SiPINLCEventAction.hh"
 #include "globals.hh"
-#include "G4ParticleGun.hh"
-#include "G4VUserPrimaryGeneratorAction.hh"
-#include "PMTLCDetectorConstruction.hh"
-#include <random>
-#include "G4GeneralParticleSource.hh"
+#include "G4UserSteppingAction.hh"
 
-class G4Event;
-class PMTLCPrimaryGeneratorMessenger;
-
-//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-
-class PMTLCPrimaryGeneratorAction : public G4VUserPrimaryGeneratorAction
+class SiPINLCSteppingAction : public G4UserSteppingAction
 {
  public:
-  PMTLCPrimaryGeneratorAction(PMTLCDetectorConstruction* detectorConstruction);
-  ~PMTLCPrimaryGeneratorAction();
+  SiPINLCSteppingAction(SiPINLCEventAction*);
+  ~SiPINLCSteppingAction();
 
-  void GeneratePrimaries(G4Event*) override;
-
-  void SetOptPhotonPolar();
-  void SetOptPhotonPolar(G4double);
-
-  void InitializeProjectionArea();
-  bool isInitialized = false;
-
-  G4ParticleGun* GetParticleGun() { return fParticleGun; }
-  G4GeneralParticleSource* GetGPS() { return fGPS; }
-
-  void UseParticleGun(G4bool useGun) { useParticleGun = useGun; }
-  void SetUseParticleGun(G4bool useGun);
-  G4bool GetUseParticleGun() { return useParticleGun; }
+  void UserSteppingAction(const G4Step*) override;
 
  private:
-  G4ParticleGun* fParticleGun;
-  G4GeneralParticleSource* fGPS; // 使用 GPS
-  bool useParticleGun; // 标记使用哪种粒子源
-
-  PMTLCPrimaryGeneratorMessenger* fGunMessenger;
-  const PMTLCDetectorConstruction* detector;
-
-  PMTLCDetectorConstruction* fDetectorConstruction;
-  
-
-  G4double minX, maxX, minY, maxY, z_pos;
-  std::uniform_real_distribution<> disX;
-  std::uniform_real_distribution<> disY;
-  std::mt19937 gen;
-
-  
+  SiPINLCEventAction* fEventAction;
 };
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
-#endif /*PMTLCPrimaryGeneratorAction_h*/
+#endif

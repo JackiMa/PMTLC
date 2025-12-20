@@ -28,8 +28,8 @@ G4VModularPhysicsList::ReplacePhysics: G4EmStandard with type : 2 is replaced wi
 /run/verbose 1
 /control/cout/ignoreThreadsExcept 0
 #
-/PMTLC/DetectorConstruction/enableVerbose true
-/PMTLC/DetectorConstruction/dumpGdml false
+/SiPINLC/DetectorConstruction/enableVerbose true
+/SiPINLC/DetectorConstruction/dumpGdml false
 /run/initialize
 ### G4PhysicsVector: spline cannot be used for 2 points - spline disabled
 2.034e-06   1

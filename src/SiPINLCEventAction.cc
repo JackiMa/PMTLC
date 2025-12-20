@@ -23,16 +23,16 @@
 // * acceptance of all terms of the Geant4 Software license.          *
 // ********************************************************************
 //
-/// \file optical/PMTLC/src/PMTLCEventAction.cc
-/// \brief Implementation of the PMTLCEventAction class
+/// \file optical/SiPINLC/src/SiPINLCEventAction.cc
+/// \brief Implementation of the SiPINLCEventAction class
 //
 //
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
-#include "PMTLCEventAction.hh"
-#include "PMTLCRun.hh"
-#include "PMTLCStackingAction.hh"
+#include "SiPINLCEventAction.hh"
+#include "SiPINLCRun.hh"
+#include "SiPINLCStackingAction.hh"
 #include "G4Event.hh"
 #include "G4RunManager.hh"
 #include "G4SDManager.hh"
@@ -44,16 +44,16 @@
 #include "config.hh"
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-PMTLCEventAction::PMTLCEventAction()
+SiPINLCEventAction::SiPINLCEventAction()
     : G4UserEventAction()
 {
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-PMTLCEventAction::~PMTLCEventAction() {}
+SiPINLCEventAction::~SiPINLCEventAction() {}
 
 
-G4THitsMap<G4double>* PMTLCEventAction::GetHitsCollection(G4int hcID,
+G4THitsMap<G4double>* SiPINLCEventAction::GetHitsCollection(G4int hcID,
                                   const G4Event* event) const
 {
   auto hitsCollection
@@ -72,7 +72,7 @@ G4THitsMap<G4double>* PMTLCEventAction::GetHitsCollection(G4int hcID,
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
-G4double PMTLCEventAction::GetSum(G4THitsMap<G4double>* hitsMap) const
+G4double SiPINLCEventAction::GetSum(G4THitsMap<G4double>* hitsMap) const
 {
   G4double sumValue = 0.;
   for ( auto it : *hitsMap->GetMap() ) {
@@ -84,13 +84,13 @@ G4double PMTLCEventAction::GetSum(G4THitsMap<G4double>* hitsMap) const
 
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-void PMTLCEventAction::BeginOfEventAction(const G4Event *)
+void SiPINLCEventAction::BeginOfEventAction(const G4Event *)
 {
   fLightCollection = 0;
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-void PMTLCEventAction::EndOfEventAction(const G4Event *event)
+void SiPINLCEventAction::EndOfEventAction(const G4Event *event)
 {
   auto analysisManager = G4AnalysisManager::Instance();
 
@@ -107,7 +107,7 @@ void PMTLCEventAction::EndOfEventAction(const G4Event *event)
   fEdepInCrystal = G4SDManager::GetSDMpointer()->GetCollectionID(gN_sc_crystal+"/Edep");
   auto EdepInCrystal = GetSum(GetHitsCollection(fEdepInCrystal, event));
   analysisManager->FillH1(gID_H1_sc_ed, EdepInCrystal);
-  analysisManager->FillH1(gID_H1_PMT_LC, fLightCollection);
+  analysisManager->FillH1(gID_H1_sipin_LC, fLightCollection);
 
   processedTrackIDs.clear(); // 清空已处理的 track ID (用于统计哪些光子进入数值孔径)
     // Print per event (modulo n)

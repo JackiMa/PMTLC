@@ -362,12 +362,12 @@ void FiberAcceptanceScorer::EndOfEvent(G4HCofThisEvent*) {
 // ---------------------------------- //
 // ---------------------------------- //
 
-PhotocathodeScorer::PhotocathodeScorer(const G4String& name, const G4int fillH1Id,const G4int fillH2Id, G4int depth)
+siScorer::siScorer(const G4String& name, const G4int fillH1Id,const G4int fillH2Id, G4int depth)
     : G4VPrimitiveScorer(name, depth), fH1Id(fillH1Id), fH2Id(fillH2Id) {}
 
-PhotocathodeScorer::~PhotocathodeScorer() {}
+siScorer::~siScorer() {}
 
-G4bool PhotocathodeScorer::ProcessHits(G4Step* aStep, G4TouchableHistory*) {
+G4bool siScorer::ProcessHits(G4Step* aStep, G4TouchableHistory*) {
     G4Track* aTrack = aStep->GetTrack();
 
     if (aTrack->GetDefinition() == G4OpticalPhoton::Definition()) {
@@ -380,7 +380,7 @@ G4bool PhotocathodeScorer::ProcessHits(G4Step* aStep, G4TouchableHistory*) {
             G4String preVolumeName = preStepPoint->GetTouchableHandle()->GetVolume()->GetName();
             G4String postVolumeName = postStepPoint->GetTouchableHandle()->GetVolume()->GetName();
 
-            if (preVolumeName == gN_PMT_window && postVolumeName == gN_PMT_photocathode) {
+            if (preVolumeName == gN_sipin_window && postVolumeName == gN_sipin_si) {
                 G4ThreeVector postPosition = postStepPoint->GetPosition();
                 G4double x = postPosition.x();
                 G4double y = postPosition.y();
@@ -403,7 +403,7 @@ G4bool PhotocathodeScorer::ProcessHits(G4Step* aStep, G4TouchableHistory*) {
     return true;
 }
 
-void PhotocathodeScorer::EndOfEvent(G4HCofThisEvent*) {
+void siScorer::EndOfEvent(G4HCofThisEvent*) {
     processedTrackIDs.clear();
 }
 

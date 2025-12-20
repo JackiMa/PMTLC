@@ -33,6 +33,8 @@ public:
   static G4Material* Quartz();
   static G4Material* Borosilicate();
   static G4Material* OpticalGrease();
+
+  static G4Material* CsI_Tl(double user_lightyield,double scaleFactor,double user_birks);
   static G4Material* LSO();
   static G4Material* LYSO(double user_lightyield,double scaleFactor,double user_birks);
   static G4Material* LuAG_Ce(); //
@@ -83,7 +85,7 @@ public:
   static G4OpticalSurface* surf_ESR();
   static G4OpticalSurface* surf_TiO2();
   static G4OpticalSurface* surf_GapToClearCrystal();
-  static G4OpticalSurface* surf_GlassToPhotocathode();
+  static G4OpticalSurface* surf_GlassTosi();
   
 
   static G4double fromNmToEv(G4double wavelength);

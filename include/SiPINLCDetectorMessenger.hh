@@ -23,41 +23,37 @@
 // * acceptance of all terms of the Geant4 Software license.          *
 // ********************************************************************
 //
-/// \file PMTLC/include/PMTLCRun.hh
-/// \brief Definition of the PMTLCRun class
-//
-//
+/// \file SiPINLC/include/SiPINLCDetectorMessenger.hh
+/// \brief Definition of the SiPINLCDetectorMessenger class
 //
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
-#ifndef PMTLCRun_h
-#define PMTLCRun_h 1
+#ifndef SiPINLCDetectorMessenger_h
+#define SiPINLCDetectorMessenger_h 1
 
-#include "G4Accumulable.hh"  
-#include "G4Run.hh"
 #include "globals.hh"
+#include "G4UImessenger.hh"
 
-class G4ParticleDefinition;
+class G4VUserDetectorConstruction;
+class G4UIdirectory;
+class G4UIcmdWithABool;
+class G4UIcmdWithAString;
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
-class PMTLCRun : public G4Run
-{
- public:
-  PMTLCRun();
-  ~PMTLCRun();
+class SiPINLCDetectorMessenger : public G4UImessenger {
+public:
+    SiPINLCDetectorMessenger(G4VUserDetectorConstruction*);
+    ~SiPINLCDetectorMessenger();
+    void SetNewValue(G4UIcommand*, G4String) override;
 
-  void SetPrimary(G4ParticleDefinition* particle, G4double energy);
-
-  virtual void Merge(const G4Run*) override;
-  virtual void RecordEvent(const G4Event*) override;
-  void EndOfRun();
-
- public:
-  G4ParticleDefinition* fParticle;
-  G4double fEnergy;
-
+private:
+    G4VUserDetectorConstruction* fSiPINLCDetCon;
+    G4UIdirectory* fDetConDir;
+    G4UIcmdWithABool* fVerboseCmd;
+    G4UIcmdWithABool* fDumpGdmlCmd;
+    G4UIcmdWithAString* fDumpGdmlFileNameCmd;
 };
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 #endif

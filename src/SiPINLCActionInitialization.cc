@@ -23,72 +23,41 @@
 // * acceptance of all terms of the Geant4 Software license.          *
 // ********************************************************************
 //
-/// \file PMTLC/src/PMTLCStackingAction.cc
-/// \brief Implementation of the PMTLCStackingAction class
 //
-//
+/// \file SiPINLCActionInitialization.cc
+/// \brief Implementation of the SiPINLCActionInitialization class
+
+#include "SiPINLCActionInitialization.hh"
+#include "SiPINLCEventAction.hh"
+#include "SiPINLCPrimaryGeneratorAction.hh"
+#include "SiPINLCRunAction.hh"
+#include "SiPINLCStackingAction.hh"
+#include "SiPINLCSteppingAction.hh"
+#include "SiPINLCDetectorConstruction.hh"
+
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+SiPINLCActionInitialization::SiPINLCActionInitialization()
+  : G4VUserActionInitialization()
+{}
 
-#include "PMTLCStackingAction.hh"
-#include "PMTLCRun.hh"
-#include "G4ios.hh"
-#include "G4OpticalPhoton.hh"
-#include "G4RunManager.hh"
-#include "G4Track.hh"
-#include "G4VProcess.hh"
-#include "G4UnitsTable.hh"
-#include "G4SystemOfUnits.hh"
-#include "G4AnalysisManager.hh"
-
-
-#include "utilities.hh"
-#include "config.hh"
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+SiPINLCActionInitialization::~SiPINLCActionInitialization() {}
 
-PMTLCStackingAction::PMTLCStackingAction()
-    : G4UserStackingAction(), fScintillationPhotonCount(0)
+//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+void SiPINLCActionInitialization::BuildForMaster() const
 {
+  SetUserAction(new SiPINLCRunAction());
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-PMTLCStackingAction::~PMTLCStackingAction() {}
-
-//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-G4ClassificationOfNewTrack PMTLCStackingAction::ClassifyNewTrack(
-    const G4Track *aTrack)
+void SiPINLCActionInitialization::Build() const
 {
-  if(!g_has_cherenkov){
-      if (aTrack->GetDefinition() == G4OpticalPhoton::OpticalPhotonDefinition())
-    { // particle is optical photon
-      if (aTrack->GetParentID() > 0)
-      { // particle is secondary
-        if (aTrack->GetCreatorProcess()->GetProcessName() == "Cerenkov")
-        {
-          return fKill; // kill the particle if it is created by Cerenkov process
-        }
-      }
-    }
-  }
-
-  return fUrgent;
-}
-
-//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-void PMTLCStackingAction::NewStage()
-{
-  // 当前阶段（堆栈）处理完后执行
-}
-
-//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-void PMTLCStackingAction::PrepareNewEvent()
-{
-  fScintillationPhotonCount = 0;
-}
-//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-G4int PMTLCStackingAction::GetScintillationPhotonCount() const {
-    return fScintillationPhotonCount;
-}
-
-std::vector<G4double> PMTLCStackingAction::GetScintillationWavelengths() const {
-    return fScintillationWavelengths;
+  SiPINLCDetectorConstruction* detectorConstruction = new SiPINLCDetectorConstruction();
+  SiPINLCPrimaryGeneratorAction* primary = new SiPINLCPrimaryGeneratorAction(detectorConstruction);
+  SetUserAction(primary);
+  SetUserAction(new SiPINLCRunAction(primary));
+  SiPINLCEventAction* event = new SiPINLCEventAction();
+  SetUserAction(event);
+  SetUserAction(new SiPINLCSteppingAction(event));
+  SetUserAction(new SiPINLCStackingAction());
 }

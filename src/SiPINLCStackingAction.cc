@@ -23,43 +23,72 @@
 // * acceptance of all terms of the Geant4 Software license.          *
 // ********************************************************************
 //
-/// \file PMTLC/include/PMTLCPrimaryGeneratorMessenger.hh
-/// \brief Definition of the PMTLCPrimaryGeneratorMessenger class
+/// \file SiPINLC/src/SiPINLCStackingAction.cc
+/// \brief Implementation of the SiPINLCStackingAction class
 //
 //
-//
-
-//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
-#ifndef PMTLCPrimaryGeneratorMessenger_h
-#define PMTLCPrimaryGeneratorMessenger_h 1
+#include "SiPINLCStackingAction.hh"
+#include "SiPINLCRun.hh"
+#include "G4ios.hh"
+#include "G4OpticalPhoton.hh"
+#include "G4RunManager.hh"
+#include "G4Track.hh"
+#include "G4VProcess.hh"
+#include "G4UnitsTable.hh"
+#include "G4SystemOfUnits.hh"
+#include "G4AnalysisManager.hh"
 
-#include "globals.hh"
-#include "G4UImessenger.hh"
 
-class PMTLCPrimaryGeneratorAction;
-class G4UIdirectory;
-class G4UIcmdWithADoubleAndUnit;
-class G4UIcmdWithABool;
-
+#include "utilities.hh"
+#include "config.hh"
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
-class PMTLCPrimaryGeneratorMessenger : public G4UImessenger
+SiPINLCStackingAction::SiPINLCStackingAction()
+    : G4UserStackingAction(), fScintillationPhotonCount(0)
 {
- public:
-  PMTLCPrimaryGeneratorMessenger(PMTLCPrimaryGeneratorAction*);
-  ~PMTLCPrimaryGeneratorMessenger();
-
-  void SetNewValue(G4UIcommand*, G4String) override;
-
- private:
-  PMTLCPrimaryGeneratorAction* fPMTLCAction;
-  G4UIdirectory* fGunDir;
-  G4UIcmdWithADoubleAndUnit* fPolarCmd;
-  G4UIcmdWithABool* fSetUseParticleGunCmd;
-};
+}
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+SiPINLCStackingAction::~SiPINLCStackingAction() {}
 
-#endif
+//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+G4ClassificationOfNewTrack SiPINLCStackingAction::ClassifyNewTrack(
+    const G4Track *aTrack)
+{
+  if(!g_has_cherenkov){
+      if (aTrack->GetDefinition() == G4OpticalPhoton::OpticalPhotonDefinition())
+    { // particle is optical photon
+      if (aTrack->GetParentID() > 0)
+      { // particle is secondary
+        if (aTrack->GetCreatorProcess()->GetProcessName() == "Cerenkov")
+        {
+          return fKill; // kill the particle if it is created by Cerenkov process
+        }
+      }
+    }
+  }
+
+  return fUrgent;
+}
+
+//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+void SiPINLCStackingAction::NewStage()
+{
+  // 当前阶段（堆栈）处理完后执行
+}
+
+//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+void SiPINLCStackingAction::PrepareNewEvent()
+{
+  fScintillationPhotonCount = 0;
+}
+//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+G4int SiPINLCStackingAction::GetScintillationPhotonCount() const {
+    return fScintillationPhotonCount;
+}
+
+std::vector<G4double> SiPINLCStackingAction::GetScintillationWavelengths() const {
+    return fScintillationWavelengths;
+}

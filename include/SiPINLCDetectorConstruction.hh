@@ -23,40 +23,56 @@
 // * acceptance of all terms of the Geant4 Software license.          *
 // ********************************************************************
 //
-/// \file PMTLC/include/PMTLCStackingAction.hh
-/// \brief Definition of the PMTLCStackingAction class
+/// \file SiPINLC/include/SiPINLCDetectorConstruction.hh
+/// \brief Definition of the SiPINLCDetectorConstruction class
 //
-//
-//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
-#ifndef PMTLCStackingAction_h
-#define PMTLCStackingAction_h 1
+#ifndef SiPINLCDetectorConstruction_h
+#define SiPINLCDetectorConstruction_h 1
 
 #include "globals.hh"
-#include "G4UserStackingAction.hh"
-
+#include "G4VUserDetectorConstruction.hh"
+#include "G4Material.hh"
+#include "G4OpticalSurface.hh"
+#include "MyPhysicalVolume.hh"
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
-class PMTLCStackingAction : public G4UserStackingAction
+class SiPINLCDetectorMessenger;
+class G4GlobalMagFieldMessenger;
+
+class SiPINLCDetectorConstruction : public G4VUserDetectorConstruction
 {
  public:
-  PMTLCStackingAction();
-  ~PMTLCStackingAction();
+  SiPINLCDetectorConstruction();
+  ~SiPINLCDetectorConstruction();
 
-  G4ClassificationOfNewTrack ClassifyNewTrack(const G4Track* aTrack) override;
-  void NewStage() override;
-  void PrepareNewEvent() override;
+  G4VPhysicalVolume* Construct() override;
+  void ConstructSDandField() override;
 
-  G4int GetScintillationPhotonCount() const;
-  std::vector<G4double> GetScintillationWavelengths() const;
+  void SetDumpGdml(G4bool);
+  G4bool IsDumpGdml() const;
+  void SetVerbose(G4bool verbose);
+  G4bool IsVerbose() const;
+  void SetDumpGdmlFile(G4String);
+  G4String GetDumpGdmlFile() const;
+
+  MyPhysicalVolume* GetMyVolume(G4String volumeName) const;
+
+  
 
  private:
-  G4int fScintillationPhotonCount;
-  std::vector<G4double> fScintillationWavelengths; // 用于存储闪烁光波长
+  void PrintError(G4String);
+
+  std::map<G4String, MyPhysicalVolume*> fVolumeMap; // 维护需要别处引用的Solid
+
+  SiPINLCDetectorMessenger* fDetectorMessenger;
+  G4String fDumpGdmlFileName;
+
+  G4bool fVerbose;
+  G4bool fDumpGdml;
 
 };
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-
-#endif
+#endif /*SiPINLCDetectorConstruction_h*/

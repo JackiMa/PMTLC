@@ -1,4 +1,4 @@
-// #include "PMTLCLayerSensitiveDetector.hh"
+// #include "SiPINLCLayerSensitiveDetector.hh"
 
 // LayerSensitiveDetector::LayerSensitiveDetector(const G4String& name, const G4String& hitsCollectionName)
 //     : G4VSensitiveDetector(name), fHitsCollection(nullptr) {

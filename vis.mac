@@ -1,5 +1,5 @@
 #
-# Macro file for the initialization phase of "PMTLC.cc"
+# Macro file for the initialization phase of "SiPINLC.cc"
 #
 # Sets some default verbose
 # and initializes the graphic.
@@ -86,4 +86,4 @@
 
 # other control commands:
 # set the PrimaryGeneratorAction to use the particle gun
-/PMTLC/generator/useParticleGun true
+/SiPINLC/generator/useParticleGun true

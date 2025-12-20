@@ -23,53 +23,56 @@
 // * acceptance of all terms of the Geant4 Software license.          *
 // ********************************************************************
 //
-/// \file optical/PMTLC/include/PMTLCEventAction.hh
-/// \brief Definition of the PMTLCEventAction class
+/// \file SiPINLC/src/SiPINLCRun.cc
+/// \brief Implementation of the SiPINLCRun class
 //
 //
+//
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
-#ifndef PMTLCEventAction_h
-#define PMTLCEventAction_h 1
+#include "SiPINLCRun.hh"
+#include "G4ParticleDefinition.hh"
+#include "G4Run.hh"
+#include "G4UnitsTable.hh"
+#include "G4AccumulableManager.hh"
 
-#include "G4UserEventAction.hh"
-#include "G4THitsMap.hh"
-#include "globals.hh"
-
-#include <set>
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
-class PMTLCEventAction : public G4UserEventAction
+SiPINLCRun::SiPINLCRun()
+  : G4Run()
 {
- public:
-  PMTLCEventAction();
-  ~PMTLCEventAction();
+  fParticle             = nullptr;
+  fEnergy               = -1.;
+}
 
-  void BeginOfEventAction(const G4Event*) override;
-  void EndOfEventAction(const G4Event*) override;
-  
-  // methods
-  G4THitsMap<G4double>* GetHitsCollection(G4int hcID,
-                                          const G4Event* event) const;
-  G4double GetSum(G4THitsMap<G4double>* hitsMap) const;
-  void PrintEventStatistics(G4double absoEdep) const;
-
-  // 用于考虑光子是否穿过数值孔径，记录trackID，避免重复统计
-  std::set<G4int> processedTrackIDs;
-
-  // data members
-  G4int fAbsoEdepHCID = -1;
-  G4int fTotalEnergyHCID = -1;
-  G4int fHEPhotonHCID = -1;
-  G4int fNeutEdepHCID = -1;
-
-  G4int fEdepInCrystal = -1;
-  G4int fEngPassingSD1 = -1;
-
-  G4int fLightCollection = -1;
-
-};
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-#endif
+
+SiPINLCRun::~SiPINLCRun() {}
+
+//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+
+void SiPINLCRun::SetPrimary(G4ParticleDefinition* particle, G4double energy)
+{
+  fParticle = particle;
+  fEnergy   = energy;
+}
+
+//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+
+void SiPINLCRun::Merge(const G4Run* aRun)
+{
+  G4Run::Merge(aRun);
+}
+
+//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+void SiPINLCRun::EndOfRun()
+{
+
+}
+
+
+void SiPINLCRun::RecordEvent(const G4Event* )
+{
+}

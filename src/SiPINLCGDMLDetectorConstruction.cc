@@ -24,8 +24,8 @@
 // ********************************************************************
 //
 
-#include "PMTLCGDMLDetectorConstruction.hh"
-#include "PMTLCDetectorMessenger.hh"
+#include "SiPINLCGDMLDetectorConstruction.hh"
+#include "SiPINLCDetectorMessenger.hh"
 
 #include "globals.hh"
 #include "G4GDMLParser.hh"
@@ -36,29 +36,29 @@
 #include "G4VisAttributes.hh"
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-PMTLCGDMLDetectorConstruction::PMTLCGDMLDetectorConstruction(
+SiPINLCGDMLDetectorConstruction::SiPINLCGDMLDetectorConstruction(
   G4String fname)
   : G4VUserDetectorConstruction()
 {
-  fDumpGdmlFileName = "PMTLC_dump.gdml";
+  fDumpGdmlFileName = "SiPINLC_dump.gdml";
   fVerbose          = false;
   fDumpGdml         = false;
   fGdmlFile         = fname;
   // create a messenger for this class
-  fDetectorMessenger = new PMTLCDetectorMessenger(this);
+  fDetectorMessenger = new SiPINLCDetectorMessenger(this);
 
   G4cout << "Building detector from GDML file: " << fname << G4endl << G4endl;
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-PMTLCGDMLDetectorConstruction::~PMTLCGDMLDetectorConstruction()
+SiPINLCGDMLDetectorConstruction::~SiPINLCGDMLDetectorConstruction()
 {
   delete fDetectorMessenger;
   delete fParser;
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-G4VPhysicalVolume* PMTLCGDMLDetectorConstruction::Construct()
+G4VPhysicalVolume* SiPINLCGDMLDetectorConstruction::Construct()
 {
   ReadGDML();
   G4VPhysicalVolume* worldPhysVol = fParser->GetWorldVolume();
@@ -68,10 +68,10 @@ G4VPhysicalVolume* PMTLCGDMLDetectorConstruction::Construct()
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-void PMTLCGDMLDetectorConstruction::ConstructSDandField() {}
+void SiPINLCGDMLDetectorConstruction::ConstructSDandField() {}
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-void PMTLCGDMLDetectorConstruction::ReadGDML()
+void SiPINLCGDMLDetectorConstruction::ReadGDML()
 {
   fParser = new G4GDMLParser();
   fParser->Read(fGdmlFile, false);
@@ -100,40 +100,40 @@ void PMTLCGDMLDetectorConstruction::ReadGDML()
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-void PMTLCGDMLDetectorConstruction::UpdateGeometry()
+void SiPINLCGDMLDetectorConstruction::UpdateGeometry()
 {
   G4RunManager::GetRunManager()->DefineWorldVolume(Construct());
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-void PMTLCGDMLDetectorConstruction::SetDumpGdml(G4bool val)
+void SiPINLCGDMLDetectorConstruction::SetDumpGdml(G4bool val)
 {
   fDumpGdml = val;
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-G4bool PMTLCGDMLDetectorConstruction::IsDumpGdml() const
+G4bool SiPINLCGDMLDetectorConstruction::IsDumpGdml() const
 {
   return fDumpGdml;
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-void PMTLCGDMLDetectorConstruction::SetVerbose(G4bool val)
+void SiPINLCGDMLDetectorConstruction::SetVerbose(G4bool val)
 {
   fVerbose = val;
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-G4bool PMTLCGDMLDetectorConstruction::IsVerbose() const { return fVerbose; }
+G4bool SiPINLCGDMLDetectorConstruction::IsVerbose() const { return fVerbose; }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-void PMTLCGDMLDetectorConstruction::SetDumpGdmlFile(G4String val)
+void SiPINLCGDMLDetectorConstruction::SetDumpGdmlFile(G4String val)
 {
   fDumpGdmlFileName = val;
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-G4String PMTLCGDMLDetectorConstruction::GetDumpGdmlFileName() const
+G4String SiPINLCGDMLDetectorConstruction::GetDumpGdmlFileName() const
 {
   return fDumpGdmlFileName;
 }

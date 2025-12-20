@@ -2,7 +2,7 @@
 
 # 指定源名字和新名字
 source_name="OpNovice"
-new_name="PMTLC"
+new_name="SiPINLC"
 
 # 使用find命令递归查找所有包含源名字的文件
 find . -type f -name "*$source_name*" | while read file; do

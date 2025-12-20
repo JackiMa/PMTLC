@@ -23,15 +23,15 @@
 // * acceptance of all terms of the Geant4 Software license.          *
 // ********************************************************************
 //
-/// \file PMTLC/src/PMTLCRunAction.cc
-/// \brief Implementation of the PMTLCRunAction class
+/// \file SiPINLC/src/SiPINLCRunAction.cc
+/// \brief Implementation of the SiPINLCRunAction class
 //
 //
 //
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-#include "PMTLCRunAction.hh"
-#include "PMTLCPrimaryGeneratorAction.hh"
-#include "PMTLCRun.hh"
+#include "SiPINLCRunAction.hh"
+#include "SiPINLCPrimaryGeneratorAction.hh"
+#include "SiPINLCRun.hh"
 #include "G4ParticleDefinition.hh"
 #include "G4Run.hh"
 #include <fstream>
@@ -47,7 +47,7 @@
 #include "config.hh"
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-PMTLCRunAction::PMTLCRunAction(PMTLCPrimaryGeneratorAction *prim)
+SiPINLCRunAction::SiPINLCRunAction(SiPINLCPrimaryGeneratorAction *prim)
     : G4UserRunAction(), fRun(nullptr), fPrimary(prim)
 {
 
@@ -63,14 +63,14 @@ PMTLCRunAction::PMTLCRunAction(PMTLCPrimaryGeneratorAction *prim)
   gID_H1_ch_wl = 1;
   analysisManager->CreateH1("CherenkovLightWavelength", "CherenkovLight Wavelength in Crystal", 600, 200.0, 800.0);
   
-  gID_H1_PMT_wl = 2;
+  gID_H1_sipin_wl = 2;
   analysisManager->CreateH1("PhotonHitatPhotoncathodeWavelength", "Wavelength of Light Hit at Photoncathode", 600, 200.0, 800.0);
   
   gID_H1_sc_ed = 3;
   analysisManager->CreateH1("EnergyDepositionInScintillator", "Energy Deposition in Scintillator", 1000, 0.0, 1);
 
-  gID_H1_PMT_LC = 4;
-  analysisManager->CreateH1("LightCollectionAtPMT", "Light Collectiopn", 500, 0.0, 1000);
+  gID_H1_sipin_LC = 4;
+  analysisManager->CreateH1("LightCollectionAtsipin", "Light Collectiopn", 500, 0.0, 1000);
   
   gID_H1_photon_posY0 = 5;
   analysisManager->CreateH1("PhotonPosition_Y=0", "Photon Position Y in [-0.5, 0.5", 100, -0.5 * g_worldX, 0.5 * g_worldX);
@@ -86,17 +86,17 @@ PMTLCRunAction::PMTLCRunAction(PMTLCPrimaryGeneratorAction *prim)
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-PMTLCRunAction::~PMTLCRunAction() {}
+SiPINLCRunAction::~SiPINLCRunAction() {}
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-G4Run *PMTLCRunAction::GenerateRun()
+G4Run *SiPINLCRunAction::GenerateRun()
 {
-  fRun = new PMTLCRun();
+  fRun = new SiPINLCRun();
   return fRun;
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-void PMTLCRunAction::BeginOfRunAction(const G4Run *)
+void SiPINLCRunAction::BeginOfRunAction(const G4Run *)
 {
   if (fPrimary)
   {
@@ -135,7 +135,7 @@ void PMTLCRunAction::BeginOfRunAction(const G4Run *)
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-void PMTLCRunAction::EndOfRunAction(const G4Run * run)
+void SiPINLCRunAction::EndOfRunAction(const G4Run * run)
 {
 
   G4int runID = run->GetRunID();
@@ -157,21 +157,21 @@ void PMTLCRunAction::EndOfRunAction(const G4Run * run)
       outFile << "runID,"
               << "Scintillation Photon Count,"
               << "Cherenkov Photon Count,"
-              << "Photon Hit Photocathode,"
+              << "Photon Hit si,"
               << "lightCollectionEfficiency" << "\n";
     }
 
     // 统计光子产生与收集
     G4int scintillationPhotonCount = analysisManager->GetH1(gID_H1_sc_wl)->entries();
     G4int cherenkovPhotonCount = analysisManager->GetH1(gID_H1_ch_wl)->entries();
-    G4int PhotocathodeCounts = analysisManager->GetH1(gID_H1_PMT_wl)->entries();
-    G4double lightCollectionEfficiency = (G4double)PhotocathodeCounts / (scintillationPhotonCount + cherenkovPhotonCount);
+    G4int siCounts = analysisManager->GetH1(gID_H1_sipin_wl)->entries();
+    G4double lightCollectionEfficiency = (G4double)siCounts / (scintillationPhotonCount + cherenkovPhotonCount);
 
     // 写入数据
     outFile << runID << ","
             << scintillationPhotonCount << ","
             << cherenkovPhotonCount << ","
-            << PhotocathodeCounts <<","
+            << siCounts <<","
             << lightCollectionEfficiency <<"\n";
 
     // 关闭文件
@@ -183,13 +183,13 @@ void PMTLCRunAction::EndOfRunAction(const G4Run * run)
   G4cout << "Data written and file closed." << G4endl;
 }
 
-bool PMTLCRunAction::fileExists(const G4String &fileName)
+bool SiPINLCRunAction::fileExists(const G4String &fileName)
 {
   std::ifstream file(fileName.c_str());
   return file.good();
 }
 
-G4String PMTLCRunAction::getNewfileName(G4String baseFileName)
+G4String SiPINLCRunAction::getNewfileName(G4String baseFileName)
 {
   G4String fileExtension = ".root";
   G4String fileName;

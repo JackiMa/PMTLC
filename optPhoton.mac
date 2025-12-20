@@ -10,7 +10,7 @@
 /gun/energy 3 eV
 #
 /gun/direction 5 -3 0
-/PMTLC/gun/optPhotonPolar
+/SiPINLC/gun/optPhotonPolar
 /run/beamOn 10
 #
 /tracking/verbose 0

@@ -23,8 +23,8 @@
 // * acceptance of all terms of the Geant4 Software license.          *
 // ********************************************************************
 //
-/// \file PMTLC/PMTLC.cc
-/// \brief Main program of the PMTLC example
+/// \file SiPINLC/SiPINLC.cc
+/// \brief Main program of the SiPINLC example
 //
 //
 //
@@ -42,11 +42,11 @@
 //
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
-#include "PMTLCDetectorConstruction.hh"
+#include "SiPINLCDetectorConstruction.hh"
 #ifdef GEANT4_USE_GDML
-#include "PMTLCGDMLDetectorConstruction.hh"
+#include "SiPINLCGDMLDetectorConstruction.hh"
 #endif
-#include "PMTLCActionInitialization.hh"
+#include "SiPINLCActionInitialization.hh"
 #include "FTFP_BERT.hh"
 #include "G4EmStandardPhysics_option4.hh"
 #include "G4OpticalPhysics.hh"
@@ -68,11 +68,11 @@ namespace
   {
     G4cerr << " Usage: " << G4endl;
 #ifdef GEANT4_USE_GDML
-    G4cerr << " PMTLC [-g gdmlfile] [-m macro ] [-u UIsession] [-t "
+    G4cerr << " SiPINLC [-g gdmlfile] [-m macro ] [-u UIsession] [-t "
               "nThreads] [-r seed] "
            << G4endl;
 #else
-    G4cerr << " PMTLC  [-m macro ] [-u UIsession] [-t nThreads] [-r seed] "
+    G4cerr << " SiPINLC  [-m macro ] [-u UIsession] [-t nThreads] [-r seed] "
            << G4endl;
 #endif
     G4cerr << "   note: -t option is available only for multi-threaded mode."
@@ -153,7 +153,7 @@ int main(int argc, char **argv)
   {
 #ifdef GEANT4_USE_GDML
     runManager->SetUserInitialization(
-        new PMTLCGDMLDetectorConstruction(gdmlfile));
+        new SiPINLCGDMLDetectorConstruction(gdmlfile));
 #else
     G4cout << "Error! Input gdml file specified, but Geant4 wasn't" << G4endl
            << "built with gdml support." << G4endl;
@@ -162,7 +162,7 @@ int main(int argc, char **argv)
   }
   else
   {
-    runManager->SetUserInitialization(new PMTLCDetectorConstruction());
+    runManager->SetUserInitialization(new SiPINLCDetectorConstruction());
   }
   // Physics list
   G4VModularPhysicsList *physicsList = new FTFP_BERT;
@@ -176,7 +176,7 @@ int main(int argc, char **argv)
 
   runManager->SetUserInitialization(physicsList);
 
-  runManager->SetUserInitialization(new PMTLCActionInitialization());
+  runManager->SetUserInitialization(new SiPINLCActionInitialization());
 
   G4VisManager *visManager = new G4VisExecutive("Quiet");
   visManager->Initialize();

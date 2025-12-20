@@ -23,56 +23,69 @@
 // * acceptance of all terms of the Geant4 Software license.          *
 // ********************************************************************
 //
-/// \file PMTLC/src/PMTLCRun.cc
-/// \brief Implementation of the PMTLCRun class
+/// \file SiPINLC/include/SiPINLCPrimaryGeneratorAction.hh
+/// \brief Definition of the SiPINLCPrimaryGeneratorAction class
 //
 //
 //
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
-#include "PMTLCRun.hh"
-#include "G4ParticleDefinition.hh"
-#include "G4Run.hh"
-#include "G4UnitsTable.hh"
-#include "G4AccumulableManager.hh"
+#ifndef SiPINLCPrimaryGeneratorAction_h
+#define SiPINLCPrimaryGeneratorAction_h 1
 
+#include "globals.hh"
+#include "G4ParticleGun.hh"
+#include "G4VUserPrimaryGeneratorAction.hh"
+#include "SiPINLCDetectorConstruction.hh"
+#include <random>
+#include "G4GeneralParticleSource.hh"
 
-//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-
-PMTLCRun::PMTLCRun()
-  : G4Run()
-{
-  fParticle             = nullptr;
-  fEnergy               = -1.;
-}
+class G4Event;
+class SiPINLCPrimaryGeneratorMessenger;
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
-PMTLCRun::~PMTLCRun() {}
+class SiPINLCPrimaryGeneratorAction : public G4VUserPrimaryGeneratorAction
+{
+ public:
+  SiPINLCPrimaryGeneratorAction(SiPINLCDetectorConstruction* detectorConstruction);
+  ~SiPINLCPrimaryGeneratorAction();
+
+  void GeneratePrimaries(G4Event*) override;
+
+  void SetOptPhotonPolar();
+  void SetOptPhotonPolar(G4double);
+
+  void InitializeProjectionArea();
+  bool isInitialized = false;
+
+  G4ParticleGun* GetParticleGun() { return fParticleGun; }
+  G4GeneralParticleSource* GetGPS() { return fGPS; }
+
+  void UseParticleGun(G4bool useGun) { useParticleGun = useGun; }
+  void SetUseParticleGun(G4bool useGun);
+  G4bool GetUseParticleGun() { return useParticleGun; }
+
+ private:
+  G4ParticleGun* fParticleGun;
+  G4GeneralParticleSource* fGPS; // 使用 GPS
+  bool useParticleGun; // 标记使用哪种粒子源
+
+  SiPINLCPrimaryGeneratorMessenger* fGunMessenger;
+  const SiPINLCDetectorConstruction* detector;
+
+  SiPINLCDetectorConstruction* fDetectorConstruction;
+  
+
+  G4double minX, maxX, minY, maxY, z_pos;
+  std::uniform_real_distribution<> disX;
+  std::uniform_real_distribution<> disY;
+  std::mt19937 gen;
+
+  
+};
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
-void PMTLCRun::SetPrimary(G4ParticleDefinition* particle, G4double energy)
-{
-  fParticle = particle;
-  fEnergy   = energy;
-}
-
-//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-
-void PMTLCRun::Merge(const G4Run* aRun)
-{
-  G4Run::Merge(aRun);
-}
-
-//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-void PMTLCRun::EndOfRun()
-{
-
-}
-
-
-void PMTLCRun::RecordEvent(const G4Event* )
-{
-}
+#endif /*SiPINLCPrimaryGeneratorAction_h*/

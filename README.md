@@ -16,4 +16,4 @@
 - 所抽样的放射源位置分布
 
 # TODO
-增加hit到photocathode的角度分布进行统计
+增加hit到si的角度分布进行统计

@@ -42,30 +42,32 @@ inline G4double g_grease_thickness = 0.1*mm;  // 是否有导光油, >10*um表�
         |                *       -- Source
         |            _________
         |            |   ■   |    -- Scintillator(wrapper+crystal)
-        |———→ x   =============== -- PMT(window&photocathode)
-     y↙              vacuum
+        |———→ x   =============== -- sipin(window&si)
+     y↙              ceramics
 */
 // world
-inline G4double g_worldX = 8 * cm;
-inline G4double g_worldY = 8 * cm;
-inline G4double g_worldZ = 6 * cm;
+inline G4double g_worldX = 4 * cm;
+inline G4double g_worldY = 4 * cm;
+inline G4double g_worldZ = 3 * cm;
 inline G4Material *g_world_material = MyMaterials::Air();
 
-// PMT = window + photocathode + vacuum
-// PMT以PMT为母体，包含window、vacuum子体。window包含photocathode，window的下面是vacuum（加电场）
-inline G4String gN_PMT_window = "PMT_window";
-inline G4String gN_PMT_photocathode = "PMT_photocathode";
-inline G4String gN_PMT_vacuum = "PMT_vacuum";
-inline G4double g_pmt_radius = 3.8 * cm;
-inline G4double g_photocathode_thickness = 0.1*mm; // TBD
-inline G4double g_window_thickness = g_photocathode_thickness + 5*mm; // TBD
-inline G4double g_vacuum_thickness = 1*cm; // TBD
-inline G4double g_pmt_thickness = g_window_thickness+g_vacuum_thickness;
-inline G4ThreeVector g_pmt_pos = G4ThreeVector(0, 0, -0.5*g_worldZ + 0.5*g_pmt_thickness + 1*mm); 
-inline G4Material *g_window_material = MyMaterials::Borosilicate(); // TBD
-inline G4Material *g_photocathode_material = MyMaterials::Air(); // TBD
-inline G4Material *g_vacuum = MyMaterials::Vacuum();
-inline G4double g_E_field = 50*volt/cm; // TBD
+// sipin = window + si + ceramics
+// sipin以sipin为母体，包含window、ceramics子体。window包含si，window的下面是ceramics（加电场）
+inline G4String gN_sipin_window = "sipin_window";
+inline G4String gN_sipin_si = "sipin_si";
+inline G4String gN_sipin_ceramics = "sipin_ceramics";
+inline G4double g_sipin_X = 1 * cm;
+inline G4double g_sipin_Y = 1 * cm;
+inline G4double g_si_thickness = 0.3*mm; // TBD
+inline G4double g_window_thickness = g_si_thickness + 0.2*mm; // TBD
+inline G4double g_ceramics_thickness = 1*mm; // TBD
+inline G4double g_sipin_thickness = g_window_thickness+g_ceramics_thickness;
+inline G4ThreeVector g_sipin_pos = G4ThreeVector(0, 0, -0.5*g_worldZ + 0.5*g_sipin_thickness + 1*mm); 
+inline G4Material *g_window_material = MyMaterials::PMMA(); // TBD
+// inline G4Material *g_window_material = MyMaterials::Borosilicate(); // TBD
+inline G4Material *g_si_material = MyMaterials::Silicon(); // TBD
+// inline G4Material *g_si_material = MyMaterials::Air(); // TBD
+inline G4Material *g_ceramics = MyMaterials::PVC();
 
 // scintillator = crystal + wrapper
 // 闪烁体以wrapper为母体，包含crystal子体。wrapper可以是反光罩也可以是紧贴晶体的封装
@@ -75,15 +77,16 @@ inline G4String gN_sc_crystal = "Scintillator_crystal";
 inline ReflectorType g_wrapper_Type = TEFLON; // 反光罩类型
 inline G4double g_gap_thickness = 0.1*mm;
 inline G4double g_wrapper_thickness = 2*mm;
-inline G4double g_crystalX = 0.7 * cm;  
-inline G4double g_crystalY = 0.7 * cm;
-inline G4double g_crystalZ = 0.7 * cm;                                                  
+inline G4double g_crystalX = 0.5 * cm;  
+inline G4double g_crystalY = 0.5 * cm;
+inline G4double g_crystalZ = 0.5 * cm;                                                  
 inline G4Material *g_wrapper_material = MyMaterials::PVC(); 
 // inline G4Material *g_crystal_material = MyMaterials::PVC(); 
 // inline G4Material *g_crystal_material = MyMaterials::LuAG_Ce(); 
-// inline G4Material *g_crystal_material = MyMaterials::GAGG_Ce_Mg(20000, 1, -1); 
+inline G4Material *g_crystal_material = MyMaterials::GAGG_Ce_Mg(20000, 1, -1); 
 // inline G4Material *g_crystal_material = MyMaterials::LYSO(35000, 1, -1); 
-inline G4Material *g_crystal_material = MyMaterials::BGO(8000, 1, -1); 
+// inline G4Material *g_crystal_material = MyMaterials::BGO(8000, 1, -1); 
+// inline G4Material *g_crystal_material = MyMaterials::CsI_Tl(30000, 1, -1); 
 
 inline G4double g_grease_X = 1.1*g_crystalX;  
 inline G4double g_grease_Y = 1.1*g_crystalY;
@@ -92,9 +95,9 @@ inline G4Material *g_grease_material = MyMaterials::OpticalGrease();
 // data recording
 inline G4int gID_H1_sc_wl; // 闪烁体发光的光谱
 inline G4int gID_H1_ch_wl; // 所有材料切伦科夫光的光谱
-inline G4int gID_H1_PMT_wl; // 光子打到光阴极上的光谱
+inline G4int gID_H1_sipin_wl; // 光子打到光阴极上的光谱
 inline G4int gID_H1_sc_ed; // 闪烁体中的能量沉积
-inline G4int gID_H1_PMT_LC;  // 每一次事件产生的光子数? 有点忘了
+inline G4int gID_H1_sipin_LC;  // 每一次事件产生的光子数? 有点忘了
 
 inline G4int gID_H1_photon_posY0;
 inline G4int gID_H1_photon_posYX;

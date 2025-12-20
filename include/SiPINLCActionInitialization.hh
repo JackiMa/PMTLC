@@ -24,40 +24,22 @@
 // ********************************************************************
 //
 //
-/// \file PMTLCActionInitialization.cc
-/// \brief Implementation of the PMTLCActionInitialization class
+/// \file SiPINLCActionInitialization.hh
+/// \brief Definition of the SiPINLCActionInitialization class
 
-#include "PMTLCActionInitialization.hh"
-#include "PMTLCEventAction.hh"
-#include "PMTLCPrimaryGeneratorAction.hh"
-#include "PMTLCRunAction.hh"
-#include "PMTLCStackingAction.hh"
-#include "PMTLCSteppingAction.hh"
-#include "PMTLCDetectorConstruction.hh"
+#ifndef SiPINLCActionInitialization_h
+#define SiPINLCActionInitialization_h 1
 
-//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-PMTLCActionInitialization::PMTLCActionInitialization()
-  : G4VUserActionInitialization()
-{}
+#include "G4VUserActionInitialization.hh"
 
-//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-PMTLCActionInitialization::~PMTLCActionInitialization() {}
-
-//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-void PMTLCActionInitialization::BuildForMaster() const
+class SiPINLCActionInitialization : public G4VUserActionInitialization
 {
-  SetUserAction(new PMTLCRunAction());
-}
+ public:
+  SiPINLCActionInitialization();
+  ~SiPINLCActionInitialization();
 
-//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-void PMTLCActionInitialization::Build() const
-{
-  PMTLCDetectorConstruction* detectorConstruction = new PMTLCDetectorConstruction();
-  PMTLCPrimaryGeneratorAction* primary = new PMTLCPrimaryGeneratorAction(detectorConstruction);
-  SetUserAction(primary);
-  SetUserAction(new PMTLCRunAction(primary));
-  PMTLCEventAction* event = new PMTLCEventAction();
-  SetUserAction(event);
-  SetUserAction(new PMTLCSteppingAction(event));
-  SetUserAction(new PMTLCStackingAction());
-}
+  void BuildForMaster() const override;
+  void Build() const override;
+};
+
+#endif

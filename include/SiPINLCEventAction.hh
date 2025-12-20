@@ -23,56 +23,53 @@
 // * acceptance of all terms of the Geant4 Software license.          *
 // ********************************************************************
 //
-/// \file PMTLC/include/PMTLCDetectorConstruction.hh
-/// \brief Definition of the PMTLCDetectorConstruction class
+/// \file optical/SiPINLC/include/SiPINLCEventAction.hh
+/// \brief Definition of the SiPINLCEventAction class
+//
 //
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-
-#ifndef PMTLCDetectorConstruction_h
-#define PMTLCDetectorConstruction_h 1
-
-#include "globals.hh"
-#include "G4VUserDetectorConstruction.hh"
-#include "G4Material.hh"
-#include "G4OpticalSurface.hh"
-#include "MyPhysicalVolume.hh"
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
-class PMTLCDetectorMessenger;
-class G4GlobalMagFieldMessenger;
+#ifndef SiPINLCEventAction_h
+#define SiPINLCEventAction_h 1
 
-class PMTLCDetectorConstruction : public G4VUserDetectorConstruction
+#include "G4UserEventAction.hh"
+#include "G4THitsMap.hh"
+#include "globals.hh"
+
+#include <set>
+
+//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+
+class SiPINLCEventAction : public G4UserEventAction
 {
  public:
-  PMTLCDetectorConstruction();
-  ~PMTLCDetectorConstruction();
+  SiPINLCEventAction();
+  ~SiPINLCEventAction();
 
-  G4VPhysicalVolume* Construct() override;
-  void ConstructSDandField() override;
-
-  void SetDumpGdml(G4bool);
-  G4bool IsDumpGdml() const;
-  void SetVerbose(G4bool verbose);
-  G4bool IsVerbose() const;
-  void SetDumpGdmlFile(G4String);
-  G4String GetDumpGdmlFile() const;
-
-  MyPhysicalVolume* GetMyVolume(G4String volumeName) const;
-
+  void BeginOfEventAction(const G4Event*) override;
+  void EndOfEventAction(const G4Event*) override;
   
+  // methods
+  G4THitsMap<G4double>* GetHitsCollection(G4int hcID,
+                                          const G4Event* event) const;
+  G4double GetSum(G4THitsMap<G4double>* hitsMap) const;
+  void PrintEventStatistics(G4double absoEdep) const;
 
- private:
-  void PrintError(G4String);
+  // 用于考虑光子是否穿过数值孔径，记录trackID，避免重复统计
+  std::set<G4int> processedTrackIDs;
 
-  std::map<G4String, MyPhysicalVolume*> fVolumeMap; // 维护需要别处引用的Solid
+  // data members
+  G4int fAbsoEdepHCID = -1;
+  G4int fTotalEnergyHCID = -1;
+  G4int fHEPhotonHCID = -1;
+  G4int fNeutEdepHCID = -1;
 
-  PMTLCDetectorMessenger* fDetectorMessenger;
-  G4String fDumpGdmlFileName;
+  G4int fEdepInCrystal = -1;
+  G4int fEngPassingSD1 = -1;
 
-  G4bool fVerbose;
-  G4bool fDumpGdml;
+  G4int fLightCollection = -1;
 
 };
-
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-#endif /*PMTLCDetectorConstruction_h*/
+#endif

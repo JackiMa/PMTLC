@@ -23,16 +23,16 @@
 // * acceptance of all terms of the Geant4 Software license.          *
 // ********************************************************************
 //
-/// \file PMTLC/src/PMTLCPrimaryGeneratorAction.cc
-/// \brief Implementation of the PMTLCPrimaryGeneratorAction class
+/// \file SiPINLC/src/SiPINLCPrimaryGeneratorAction.cc
+/// \brief Implementation of the SiPINLCPrimaryGeneratorAction class
 //
 //
 //
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
-#include "PMTLCPrimaryGeneratorAction.hh"
-#include "PMTLCPrimaryGeneratorMessenger.hh"
+#include "SiPINLCPrimaryGeneratorAction.hh"
+#include "SiPINLCPrimaryGeneratorMessenger.hh"
 
 #include "G4Event.hh"
 #include "G4ParticleDefinition.hh"
@@ -54,13 +54,13 @@
 #include "config.hh"
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-PMTLCPrimaryGeneratorAction::PMTLCPrimaryGeneratorAction(PMTLCDetectorConstruction* detectorConstruction)
+SiPINLCPrimaryGeneratorAction::SiPINLCPrimaryGeneratorAction(SiPINLCDetectorConstruction* detectorConstruction)
   :G4VUserPrimaryGeneratorAction()
   , fParticleGun(nullptr)
   , useParticleGun(false)
   , fDetectorConstruction(detectorConstruction)
 {
-    fGunMessenger = new PMTLCPrimaryGeneratorMessenger(this);
+    fGunMessenger = new SiPINLCPrimaryGeneratorMessenger(this);
 
     // Initialize parameters
     G4int n_particle = 1;
@@ -84,7 +84,7 @@ PMTLCPrimaryGeneratorAction::PMTLCPrimaryGeneratorAction(PMTLCDetectorConstructi
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-PMTLCPrimaryGeneratorAction::~PMTLCPrimaryGeneratorAction()
+SiPINLCPrimaryGeneratorAction::~SiPINLCPrimaryGeneratorAction()
 {
   delete fParticleGun;
   delete fGPS;
@@ -92,15 +92,15 @@ PMTLCPrimaryGeneratorAction::~PMTLCPrimaryGeneratorAction()
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-void PMTLCPrimaryGeneratorAction::GeneratePrimaries(G4Event* anEvent)
+void SiPINLCPrimaryGeneratorAction::GeneratePrimaries(G4Event* anEvent)
 {
 
   G4RunManager* runManager = G4RunManager::GetRunManager();
-  detector = dynamic_cast<const PMTLCDetectorConstruction*>(runManager->GetUserDetectorConstruction());
+  detector = dynamic_cast<const SiPINLCDetectorConstruction*>(runManager->GetUserDetectorConstruction());
   if (!detector) {
     G4ExceptionDescription msg;
     msg << "Detector construction is not found!";
-    G4Exception("PMTLCPrimaryGeneratorAction::GeneratePrimaries()", "PMTLC_001", FatalException, msg);
+    G4Exception("SiPINLCPrimaryGeneratorAction::GeneratePrimaries()", "SiPINLC_001", FatalException, msg);
   }
 
   InitializeProjectionArea();
@@ -172,22 +172,22 @@ void PMTLCPrimaryGeneratorAction::GeneratePrimaries(G4Event* anEvent)
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-void PMTLCPrimaryGeneratorAction::SetOptPhotonPolar()
+void SiPINLCPrimaryGeneratorAction::SetOptPhotonPolar()
 {
   G4double angle = G4UniformRand() * 360.0 * deg;
   SetOptPhotonPolar(angle);
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-void PMTLCPrimaryGeneratorAction::SetOptPhotonPolar(G4double angle)
+void SiPINLCPrimaryGeneratorAction::SetOptPhotonPolar(G4double angle)
 {
   if(fParticleGun->GetParticleDefinition()->GetParticleName() !=
      "opticalphoton")
   {
     G4ExceptionDescription ed;
     ed << "Warning: the particleGun is not an opticalphoton";
-    G4Exception("PMTLCPrimaryGeneratorAction::SetOptPhotonPolar()",
-                "PMTLC_010", JustWarning, ed);
+    G4Exception("SiPINLCPrimaryGeneratorAction::SetOptPhotonPolar()",
+                "SiPINLC_010", JustWarning, ed);
     return;
   }
 
@@ -208,7 +208,7 @@ void PMTLCPrimaryGeneratorAction::SetOptPhotonPolar(G4double angle)
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
 
-void PMTLCPrimaryGeneratorAction::InitializeProjectionArea() {
+void SiPINLCPrimaryGeneratorAction::InitializeProjectionArea() {
 
   if (isInitialized) return;
     isInitialized = true;
@@ -265,8 +265,8 @@ void PMTLCPrimaryGeneratorAction::InitializeProjectionArea() {
   else {
       G4ExceptionDescription msg;
       msg << "Invalid entity type, current entity type is: " << solid->GetEntityType();
-      G4Exception("PMTLCPrimaryGeneratorAction::InitializeProjectionArea()", 
-                  "PMTLC_001", FatalException, msg);
+      G4Exception("SiPINLCPrimaryGeneratorAction::InitializeProjectionArea()", 
+                  "SiPINLC_001", FatalException, msg);
   }
 
 
@@ -287,7 +287,7 @@ disY = std::uniform_real_distribution<>(newMinY, newMaxY);
     G4cout << "Projection area initialized: " << minX << " " << maxX << " " << minY << " " << maxY << G4endl;
 }
 
-void PMTLCPrimaryGeneratorAction::SetUseParticleGun(G4bool useGun)
+void SiPINLCPrimaryGeneratorAction::SetUseParticleGun(G4bool useGun)
 {
     useParticleGun = useGun;
 }

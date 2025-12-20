@@ -23,37 +23,40 @@
 // * acceptance of all terms of the Geant4 Software license.          *
 // ********************************************************************
 //
-/// \file PMTLC/include/PMTLCDetectorMessenger.hh
-/// \brief Definition of the PMTLCDetectorMessenger class
+/// \file SiPINLC/include/SiPINLCStackingAction.hh
+/// \brief Definition of the SiPINLCStackingAction class
+//
 //
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
-#ifndef PMTLCDetectorMessenger_h
-#define PMTLCDetectorMessenger_h 1
+#ifndef SiPINLCStackingAction_h
+#define SiPINLCStackingAction_h 1
 
 #include "globals.hh"
-#include "G4UImessenger.hh"
-
-class G4VUserDetectorConstruction;
-class G4UIdirectory;
-class G4UIcmdWithABool;
-class G4UIcmdWithAString;
+#include "G4UserStackingAction.hh"
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
-class PMTLCDetectorMessenger : public G4UImessenger {
-public:
-    PMTLCDetectorMessenger(G4VUserDetectorConstruction*);
-    ~PMTLCDetectorMessenger();
-    void SetNewValue(G4UIcommand*, G4String) override;
+class SiPINLCStackingAction : public G4UserStackingAction
+{
+ public:
+  SiPINLCStackingAction();
+  ~SiPINLCStackingAction();
 
-private:
-    G4VUserDetectorConstruction* fPMTLCDetCon;
-    G4UIdirectory* fDetConDir;
-    G4UIcmdWithABool* fVerboseCmd;
-    G4UIcmdWithABool* fDumpGdmlCmd;
-    G4UIcmdWithAString* fDumpGdmlFileNameCmd;
+  G4ClassificationOfNewTrack ClassifyNewTrack(const G4Track* aTrack) override;
+  void NewStage() override;
+  void PrepareNewEvent() override;
+
+  G4int GetScintillationPhotonCount() const;
+  std::vector<G4double> GetScintillationWavelengths() const;
+
+ private:
+  G4int fScintillationPhotonCount;
+  std::vector<G4double> fScintillationWavelengths; // 用于存储闪烁光波长
+
 };
+
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+
 #endif

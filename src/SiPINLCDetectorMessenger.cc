@@ -24,46 +24,46 @@
 // ********************************************************************
 //
 
-#include "PMTLCDetectorMessenger.hh"
-#include "PMTLCDetectorConstruction.hh"
-#include "PMTLCGDMLDetectorConstruction.hh"
+#include "SiPINLCDetectorMessenger.hh"
+#include "SiPINLCDetectorConstruction.hh"
+#include "SiPINLCGDMLDetectorConstruction.hh"
 #include "G4UIdirectory.hh"
 #include "G4UIcmdWithABool.hh"
 #include "G4UIcmdWithAString.hh"
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
-PMTLCDetectorMessenger::PMTLCDetectorMessenger(
+SiPINLCDetectorMessenger::SiPINLCDetectorMessenger(
   G4VUserDetectorConstruction* detcon)
   : G4UImessenger()
-  , fPMTLCDetCon(detcon)
+  , fSiPINLCDetCon(detcon)
 {
-  fDetConDir = new G4UIdirectory("/PMTLC/DetectorConstruction/");
+  fDetConDir = new G4UIdirectory("/SiPINLC/DetectorConstruction/");
   fDetConDir->SetGuidance("Configuring Detector Construction");
 
   fVerboseCmd =
-    new G4UIcmdWithABool("/PMTLC/DetectorConstruction/enableVerbose", this);
+    new G4UIcmdWithABool("/SiPINLC/DetectorConstruction/enableVerbose", this);
   fVerboseCmd->SetGuidance("Set flag for enabling verbose diagnostic printout");
   fVerboseCmd->SetDefaultValue(false);
   fVerboseCmd->AvailableForStates(G4State_PreInit);
 
   fDumpGdmlCmd =
-    new G4UIcmdWithABool("/PMTLC/DetectorConstruction/dumpGdml", this);
+    new G4UIcmdWithABool("/SiPINLC/DetectorConstruction/dumpGdml", this);
   fDumpGdmlCmd->SetGuidance(
     "Set flag for enabling dumping the detector to a gdml file");
   fDumpGdmlCmd->SetDefaultValue(false);
   fDumpGdmlCmd->AvailableForStates(G4State_PreInit);
 
   fDumpGdmlFileNameCmd = new G4UIcmdWithAString(
-    "/PMTLC/DetectorConstruction/dumpGdmlFileName", this);
+    "/SiPINLC/DetectorConstruction/dumpGdmlFileName", this);
   fDumpGdmlFileNameCmd->SetGuidance("Enter file name to dump gdml file ");
-  fDumpGdmlFileNameCmd->SetDefaultValue("PMTLC_dump.gdml");
+  fDumpGdmlFileNameCmd->SetDefaultValue("SiPINLC_dump.gdml");
   fDumpGdmlFileNameCmd->AvailableForStates(G4State_PreInit);
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
-PMTLCDetectorMessenger::~PMTLCDetectorMessenger()
+SiPINLCDetectorMessenger::~SiPINLCDetectorMessenger()
 {
   delete fDetConDir;
   delete fVerboseCmd;
@@ -73,11 +73,11 @@ PMTLCDetectorMessenger::~PMTLCDetectorMessenger()
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
-void PMTLCDetectorMessenger::SetNewValue(G4UIcommand* command,
+void SiPINLCDetectorMessenger::SetNewValue(G4UIcommand* command,
                                             G4String newValue)
 {
-  PMTLCDetectorConstruction* dc1 =
-    dynamic_cast<PMTLCDetectorConstruction*>(fPMTLCDetCon);
+  SiPINLCDetectorConstruction* dc1 =
+    dynamic_cast<SiPINLCDetectorConstruction*>(fSiPINLCDetCon);
   if(dc1 != nullptr)
   {
     if(command == fVerboseCmd)
@@ -89,8 +89,8 @@ void PMTLCDetectorMessenger::SetNewValue(G4UIcommand* command,
   }
   else
   {
-    PMTLCGDMLDetectorConstruction* dc2 =
-      dynamic_cast<PMTLCGDMLDetectorConstruction*>(fPMTLCDetCon);
+    SiPINLCGDMLDetectorConstruction* dc2 =
+      dynamic_cast<SiPINLCGDMLDetectorConstruction*>(fSiPINLCDetCon);
     if(command == fVerboseCmd)
       dc2->SetVerbose(fVerboseCmd->GetNewBoolValue(newValue));
     if(command == fDumpGdmlCmd)

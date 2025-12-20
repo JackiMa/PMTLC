@@ -23,29 +23,52 @@
 // * acceptance of all terms of the Geant4 Software license.          *
 // ********************************************************************
 //
+/// \file SiPINLC/include/SiPINLCRunAction.hh
+/// \brief Definition of the SiPINLCRunAction class
 //
-/// \file PMTLCSteppingAction.hh
-/// \brief Definition of the PMTLCSteppingAction class
+//
+//
+//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
-#ifndef PMTLCSteppingAction_h
-#define PMTLCSteppingAction_h 1
+#ifndef SiPINLCRunAction_h
+#define SiPINLCRunAction_h 1
 
-#include "PMTLCEventAction.hh"
 #include "globals.hh"
-#include "G4UserSteppingAction.hh"
+#include "G4UserRunAction.hh"
+#include "G4Accumulable.hh"
+#include <fstream>
 
-class PMTLCSteppingAction : public G4UserSteppingAction
-{
- public:
-  PMTLCSteppingAction(PMTLCEventAction*);
-  ~PMTLCSteppingAction();
 
-  void UserSteppingAction(const G4Step*) override;
+#include "G4AnalysisManager.hh"
 
- private:
-  PMTLCEventAction* fEventAction;
-};
+class SiPINLCPrimaryGeneratorAction;
+class SiPINLCRun;
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
+class G4Run;
+
+class SiPINLCRunAction : public G4UserRunAction
+{
+ public:
+  SiPINLCRunAction(SiPINLCPrimaryGeneratorAction* = nullptr);
+  ~SiPINLCRunAction();
+
+  G4Run* GenerateRun() override;
+  void BeginOfRunAction(const G4Run*) override;
+  void EndOfRunAction(const G4Run*) override;
+
+ private:
+  SiPINLCRun* fRun;
+  SiPINLCPrimaryGeneratorAction* fPrimary;
+
+  std::ofstream outputFile;
+
+  bool fileExists(const G4String& fileName);
+  G4String getNewfileName(G4String baseFileName = "SiPINLC");
+};
+
+
+//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 #endif

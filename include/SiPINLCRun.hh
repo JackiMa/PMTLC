@@ -23,52 +23,41 @@
 // * acceptance of all terms of the Geant4 Software license.          *
 // ********************************************************************
 //
-/// \file PMTLC/include/PMTLCRunAction.hh
-/// \brief Definition of the PMTLCRunAction class
+/// \file SiPINLC/include/SiPINLCRun.hh
+/// \brief Definition of the SiPINLCRun class
 //
 //
 //
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
-#ifndef PMTLCRunAction_h
-#define PMTLCRunAction_h 1
+#ifndef SiPINLCRun_h
+#define SiPINLCRun_h 1
 
+#include "G4Accumulable.hh"  
+#include "G4Run.hh"
 #include "globals.hh"
-#include "G4UserRunAction.hh"
-#include "G4Accumulable.hh"
-#include <fstream>
 
-
-#include "G4AnalysisManager.hh"
-
-class PMTLCPrimaryGeneratorAction;
-class PMTLCRun;
+class G4ParticleDefinition;
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
-class G4Run;
-
-class PMTLCRunAction : public G4UserRunAction
+class SiPINLCRun : public G4Run
 {
  public:
-  PMTLCRunAction(PMTLCPrimaryGeneratorAction* = nullptr);
-  ~PMTLCRunAction();
+  SiPINLCRun();
+  ~SiPINLCRun();
 
-  G4Run* GenerateRun() override;
-  void BeginOfRunAction(const G4Run*) override;
-  void EndOfRunAction(const G4Run*) override;
+  void SetPrimary(G4ParticleDefinition* particle, G4double energy);
 
- private:
-  PMTLCRun* fRun;
-  PMTLCPrimaryGeneratorAction* fPrimary;
+  virtual void Merge(const G4Run*) override;
+  virtual void RecordEvent(const G4Event*) override;
+  void EndOfRun();
 
-  std::ofstream outputFile;
+ public:
+  G4ParticleDefinition* fParticle;
+  G4double fEnergy;
 
-  bool fileExists(const G4String& fileName);
-  G4String getNewfileName(G4String baseFileName = "PMTLC");
 };
-
-
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 #endif
