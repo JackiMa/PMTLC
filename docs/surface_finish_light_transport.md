@@ -117,6 +117,14 @@
 - Bircher & Shao（2012）：LYSO 表面 finish/几何对 SiPM 双端 DOI 的影响
   - DOI: `10.1016/j.nima.2012.07.029`
 
+另外，我们已经通过 Crossref 检索到一条**非常接近你记忆描述**的线索（长晶体 + dual-end readout + “systematic surface roughing”）：
+
+- ur-Rehman et al.（2011, NSS/MIC）：对 **100 mm 长 LYSO 晶体**做“systematic crystal surface roughing”，用于提升 dual-ended readout 的空间/DOI 性能
+  - DOI: `10.1109/NSSMIC.2011.6153681`
+  - 这类工作通常会把“表面粗糙度/处理区域”作为可调参，从而实现“远端更导光、近端更出光”的折中（需要进一步读文确认其是否是明确的‘分区/梯度’处理）。
+
+建议把它作为“你记得那篇论文”的第一候选，后续沿它的引用链继续找同类“分区表面处理（graded / selective roughening）”的更直接表述论文。
+
 你记得的那类“远端镜面、近端粗糙更利于导光/出光”的论文，常见关键词可能是：
 - `partial roughening`, `selective roughening`, `hybrid surface treatment`
 - `light output uniformity`, `depth of interaction`, `dual-end readout`
