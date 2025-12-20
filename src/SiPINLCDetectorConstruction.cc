@@ -178,13 +178,19 @@ G4VPhysicalVolume *SiPINLCDetectorConstruction::Construct()
     const G4double bottom_gap = (grease_effective > 0.0) ? grease_effective : g_bottom_airgap_thickness;
     const G4double sipin_top_z = g_sipin_pos.z() + 0.5 * g_sipin_thickness;
 
-    // --- sc_gap: air container in world (slightly shrunk to avoid coplanar-surface navigation issues)
+    // --- sc_gap: air container in world
+    // IMPORTANT:
+    // Do NOT shrink `sc_gap` relative to the wrapper cavity.
+    // If `sc_gap` is even slightly smaller, Geant4 creates a thin "world air" slit
+    // between `sc_gap` and the PTFE wrapper inner wall, and also between `sc_gap` and SiPIN top.
+    // That breaks the intended optics topology:
+    // - PTFE reflective skin surface no longer acts (photons never touch the wrapper)
+    // - grease/sc_gap -> sipin_si interface hook may not trigger (extra world boundary)
     name = "sc_gap";
     const G4double gapX = g_crystalX + 2 * g_gap_thickness;
     const G4double gapY = g_crystalY + 2 * g_gap_thickness;
     const G4double gapZ = bottom_gap + g_crystalZ + g_top_airgap_thickness;
-    const G4double gap_eps = 0.1 * um; // tiny shrink, negligible compared to 100um gaps
-    G4Box *s_gap = new G4Box(name, 0.5 * gapX - gap_eps, 0.5 * gapY - gap_eps, 0.5 * gapZ - gap_eps);
+    G4Box *s_gap = new G4Box(name, 0.5 * gapX, 0.5 * gapY, 0.5 * gapZ);
     G4LogicalVolume *l_gap = new G4LogicalVolume(s_gap, g_world_material, name);
     const G4ThreeVector gap_world_pos(0, 0, sipin_top_z + 0.5 * gapZ);
     MyPhysicalVolume *p_gap = new MyPhysicalVolume(0, gap_world_pos, name, l_gap, p_world, false, 0, checkOverlaps);

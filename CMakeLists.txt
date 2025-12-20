@@ -30,8 +30,11 @@ include(${Geant4_USE_FILE})
 #
 include_directories(${PROJECT_SOURCE_DIR}/include 
                     ${Geant4_INCLUDE_DIR})
-file(GLOB sources ${PROJECT_SOURCE_DIR}/src/*.cc)
-file(GLOB headers ${PROJECT_SOURCE_DIR}/include/*.hh)
+# NOTE:
+# Use CONFIGURE_DEPENDS so newly added .cc/.hh files (e.g. SipinPDETable.cc)
+# are picked up without requiring the user to manually delete/recreate build dir.
+file(GLOB sources CONFIGURE_DEPENDS ${PROJECT_SOURCE_DIR}/src/*.cc)
+file(GLOB headers CONFIGURE_DEPENDS ${PROJECT_SOURCE_DIR}/include/*.hh)
 if (GEANT4_USE_GDML)
 file(GLOB detectors ${PROJECT_SOURCE_DIR}/gdml/*.gdml)
 endif()

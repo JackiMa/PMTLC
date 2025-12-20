@@ -1,0 +1,23 @@
+# Geometry sanity check (WITH grease): isotropic optical photons from crystal center (g_debug_opticalphoton=true)
+# Goal: grease should increase bottom transmission -> higher "Photon Hit si" than no-grease case.
+#
+# Notes:
+# - Use pdetMode=0 so "reaching Si" is counted and killed (pure geometry arrival).
+# - All /SiPINLC/geometry/* must be set BEFORE /run/initialize.
+
+/control/verbose 0
+/run/verbose 0
+/tracking/verbose 0
+/process/optical/verbose 0
+
+/SiPINLC/sipin/pdetMode 0
+
+# With grease at bottom
+/SiPINLC/geometry/greaseThickness 0.05 mm
+/SiPINLC/geometry/topAirGap 0.10 mm
+/SiPINLC/geometry/sideGap 0.10 mm
+
+/run/initialize
+/run/beamOn 10000
+
+
