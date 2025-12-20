@@ -1,0 +1,29 @@
+/control/verbose 1
+/run/verbose 1
+/tracking/verbose 0
+/process/optical/verbose 0
+#
+# P_det sanity test (constant): launch photons from crystal center straight down
+# Change pdetConst to 0/0.5/1 and compare "Photon Hit si" in run_data.csv
+#
+/control/verbose 0
+/run/verbose 0
+/SiPINLC/gun/useParticleGun true
+/SiPINLC/sipin/pdetMode 1
+/SiPINLC/sipin/pdetConst 0.5
+/SiPINLC/sipin/maxInterfaceHits 5000
+#
+/run/initialize
+#
+/SiPINLC/gun/useParticleGun true
+#
+/gun/particle opticalphoton
+/gun/energy 3.0 eV
+#
+# Crystal center is around z ~ -10.15 mm for 5mm crystal in current geometry
+/gun/position 0 0 -10.15 mm
+/gun/direction 0 0 -1
+#
+/run/beamOn 200
+
+

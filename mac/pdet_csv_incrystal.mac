@@ -1,0 +1,22 @@
+/control/verbose 0
+/run/verbose 0
+/tracking/verbose 0
+/process/optical/verbose 0
+#
+# P_det sanity test (CSV table): uses spectrum/sipin_pdet_dummy.csv
+#
+/SiPINLC/sipin/pdetMode 2
+/SiPINLC/sipin/pdetFile spectrum/sipin_pdet_dummy.csv
+/SiPINLC/sipin/maxInterfaceHits 5000
+#
+/run/initialize
+#
+/SiPINLC/gun/useParticleGun true
+/gun/particle opticalphoton
+/gun/energy 3.0 eV
+/gun/position 0 0 -10.15 mm
+/gun/direction 0 0 -1
+#
+/run/beamOn 200
+
+

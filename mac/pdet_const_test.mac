@@ -1,0 +1,24 @@
+/control/verbose 1
+/run/verbose 1
+/tracking/verbose 0
+/process/optical/verbose 0
+#
+# Quick sanity test for SiPIN P_det hook
+# - pdetMode=1 uses constant p_det
+# - p_det=1 should absorb+count at first Si hit (fast)
+#
+/SiPINLC/sipin/pdetMode 1
+/SiPINLC/sipin/pdetConst 1.0
+#
+/run/initialize
+#
+/gun/particle opticalphoton
+/gun/energy 3 eV
+#
+# Shoot downward toward SiPIN
+/gun/position 0 0 0 mm
+/gun/direction 0 0 -1
+#
+/run/beamOn 100
+
+
