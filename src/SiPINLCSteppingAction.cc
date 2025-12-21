@@ -39,7 +39,9 @@
 #include "G4AnalysisManager.hh"
 #include "G4RandomTools.hh"
 #include "G4GeometryTolerance.hh"
+#include "G4Threading.hh"
 
+#include <atomic>
 #include "config.hh"
 #include "SipinPDETable.hh"
 
@@ -60,6 +62,24 @@ G4ThreeVector SampleLambertianHemisphere(const G4ThreeVector& axisUnit)
     G4ThreeVector v = w.cross(u).unit();
 
     G4ThreeVector dir = (sinTheta * std::cos(phi)) * u + (sinTheta * std::sin(phi)) * v + (cosTheta) * w;
+    return dir.unit();
+}
+
+// Isotropic direction sampling constrained to a given hemisphere (NOT cosine-weighted).
+// Returns a unit vector.
+// NOTE: This is intentionally used in analytic sanity-check wall override to approximate "full mixing"
+// assumptions in docs/analytic_check2.md (not a physical Lambertian BRDF).
+G4ThreeVector SampleIsotropicHemisphere(const G4ThreeVector& axisUnit)
+{
+    // Isotropic in 4pi
+    const G4double u = 2.0 * G4UniformRand() - 1.0; // cos in [-1,1]
+    const G4double phi = 2.0 * CLHEP::pi * G4UniformRand();
+    const G4double sinTheta = std::sqrt(std::max(0.0, 1.0 - u * u));
+    G4ThreeVector dir(sinTheta * std::cos(phi), sinTheta * std::sin(phi), u);
+
+    // Constrain to hemisphere oriented by axisUnit
+    const G4ThreeVector ax = axisUnit.unit();
+    if (dir.dot(ax) < 0.0) dir = -dir;
     return dir.unit();
 }
 
@@ -96,6 +116,82 @@ void SiPINLCSteppingAction::UserSteppingAction(const G4Step *step)
         G4int trackID = aTrack->GetTrackID();
         G4StepPoint *preStepPoint = step->GetPreStepPoint();
         G4StepPoint *postStepPoint = step->GetPostStepPoint();
+
+        // === Sanity-check safety cap ===
+        // For analytic scenarios (A/B/C) we may create "specular + TIR trapped" tracks that would
+        // otherwise take extremely many steps before being absorbed, which can stall or crash long runs.
+        if (g_sanity_wall_model != SANITY_WALL_OFF && g_sanity_max_steps > 0)
+        {
+            if (aTrack->GetCurrentStepNumber() > g_sanity_max_steps)
+            {
+                fEventAction->fEscapeOther++;
+                aTrack->SetTrackStatus(fStopAndKill);
+                return;
+            }
+        }
+
+        // === Scenario A fast path (specular) ===
+        // Under ideal specular side/top walls, the polar angle (relative to bottom normal) is conserved.
+        // If |cos(theta)| is below the critical value, the photon is TIR-trapped w.r.t. the bottom interface
+        // and will never reach Si in the no-absorption limit. To make 1e6-statistics feasible, we can
+        // short-circuit these photons at step 1 and count them as "lost".
+        if (g_sanity_fast_specular_tir && g_sanity_wall_model == SANITY_WALL_SPECULAR &&
+            aTrack->GetCurrentStepNumber() == 1)
+        {
+            const G4ThreeVector dir = aTrack->GetMomentumDirection().unit();
+            const G4double cosTheta = std::abs(dir.z()); // bottom normal is ±z
+
+            // Estimate n1 (crystal) and n2 (bottom medium) at this photon energy.
+            const G4double energy = aTrack->GetTotalEnergy();
+            auto* mpt1 = preStepPoint->GetMaterial()->GetMaterialPropertiesTable();
+            G4double n1 = 1.0;
+            if (mpt1)
+            {
+                if (auto* r1 = mpt1->GetProperty("RINDEX")) n1 = r1->Value(energy);
+            }
+
+            // Choose bottom medium by configuration (grease or air gap)
+            G4Material* bottomMat = (g_grease_thickness > 10 * um) ? g_grease_material : g_world_material;
+            G4double n2 = 1.0;
+            if (bottomMat)
+            {
+                if (auto* mpt2 = bottomMat->GetMaterialPropertiesTable())
+                {
+                    if (auto* r2 = mpt2->GetProperty("RINDEX")) n2 = r2->Value(energy);
+                }
+            }
+
+            if (n1 > 0.0 && n2 > 0.0 && n1 > n2)
+            {
+                const G4double mu0 = std::sqrt(std::max(0.0, 1.0 - (n2 / n1) * (n2 / n1)));
+                // Debug a few events (once globally) to validate n1/n2/mu0 and fast-path logic.
+                static std::atomic<int> dbg{0};
+                const int k = dbg.fetch_add(1);
+                if (k < 5)
+                {
+                    G4cout << "[SANITY-A fast] tid=" << G4Threading::G4GetThreadId()
+                           << " n1=" << n1 << " n2=" << n2
+                           << " mu0=" << mu0 << " cosTheta=" << cosTheta
+                           << " preMat=" << preStepPoint->GetMaterial()->GetName()
+                           << " bottomMat=" << (bottomMat ? bottomMat->GetName() : "null")
+                           << G4endl;
+                }
+                // If trapped by TIR w.r.t bottom interface -> never reaches Si in scenario A
+                if (cosTheta < mu0) {
+                    fEventAction->fEscapeOther++;
+                    aTrack->SetTrackStatus(fStopAndKill);
+                    return;
+                }
+
+                // Otherwise, under ideal specular side/top walls, the photon will eventually transmit through bottom
+                // with probability -> 1 (Fresnel only affects number of bounces, not the eventual probability).
+                // For analytic sanity check we count it as "hit Si" immediately to make 1e6 feasible.
+                fEventAction->fLightCollection++;
+                fEventAction->processedTrackIDs.insert(trackID);
+                aTrack->SetTrackStatus(fStopAndKill);
+                return;
+            }
+        }
         
         // === 论文所需：统计产生的闪烁光子数 ===
         // 只在光子第一次出现时统计（CurrentStepNumber == 1）
@@ -105,6 +201,10 @@ void SiPINLCSteppingAction::UserSteppingAction(const G4Step *step)
             if (creatorProcess && creatorProcess->GetProcessName() == "Scintillation")
             {
                 fEventAction->fPhotonGenerated++;
+            }
+            if (creatorProcess && creatorProcess->GetProcessName() == "Cerenkov")
+            {
+                fEventAction->fCherenkovGenerated++;
             }
         }
         
@@ -117,7 +217,8 @@ void SiPINLCSteppingAction::UserSteppingAction(const G4Step *step)
         G4String preVolumeName = preVolume->GetName();
         G4String postVolumeName = postVolume ? postVolume->GetName() : "OutOfWorld";
         
-        auto analysisManager = G4AnalysisManager::Instance();
+        // For analytic sanity-check runs we avoid ROOT/analysis I/O in MT for stability.
+        auto analysisManager = (g_sanity_wall_model == SANITY_WALL_OFF) ? G4AnalysisManager::Instance() : nullptr;
         
         // === 论文所需：累加光子在晶体内的路程 ===
         // 用于理解自吸收效应
@@ -127,18 +228,9 @@ void SiPINLCSteppingAction::UserSteppingAction(const G4Step *step)
             fEventAction->photonPathInCrystal[trackID] += stepLength;
         }
         
-        // DEBUG: 追踪光子从晶体底面出来后的路径
-        static G4int debugPathCount = 0;
-        if (debugPathCount < 20 && 
-            (preVolumeName == gN_sc_crystal || preVolumeName == "sc_gap" || preVolumeName == "optical_grease") &&
-            preStepPoint->GetPosition().z() < -12.0*mm)  // 接近底面
-        {
-            G4cout << "[PATH] #" << debugPathCount++ 
-                   << " pre=" << preVolumeName 
-                   << " post=" << postVolumeName
-                   << " z=" << preStepPoint->GetPosition().z()/mm << "mm"
-                   << G4endl;
-        }
+        // NOTE:
+        // Previous debugging prints ([PATH]) were removed because they were not thread-safe in MT
+        // and could trigger crashes during large-statistics analytic sanity runs.
         
         // === 论文所需：统计光子撞击SiPIN的次数和入射角 ===
         // 你的物理假设：直接处理 grease(or bottom airgap) → Si 的界面
@@ -161,7 +253,13 @@ void SiPINLCSteppingAction::UserSteppingAction(const G4Step *step)
             // 入射角 = arccos(|momentum · normal|)
             G4double cosTheta = std::abs(momentumDir.dot(surfaceNormal));
             G4double thetaDeg = std::acos(cosTheta) * 180.0 / CLHEP::pi;
-            analysisManager->FillH1(gID_H1_sipin_theta, thetaDeg);
+            if (analysisManager) {
+                analysisManager->FillH1(gID_H1_sipin_theta, thetaDeg);
+            }
+
+            // === 用于 Run 级别均值统计（MT 下不依赖直方图合并时序）===
+            fEventAction->fThetaSumDeg += thetaDeg;
+            fEventAction->fThetaCount += 1;
         }
         
         // === SiPIN 界面处理：p_det(λ,θ) ===
@@ -177,7 +275,7 @@ void SiPINLCSteppingAction::UserSteppingAction(const G4Step *step)
         {
             // 计算 (λ, θ)
             const G4double energy = aTrack->GetTotalEnergy();
-            const G4double wavelength = (1239.841939 * nm) / energy; // nm
+            const G4double wavelength = (1239.841939 * eV * nm) / energy; // nm
             const G4ThreeVector momentumDir = aTrack->GetMomentumDirection();
             const G4ThreeVector surfaceNormalToGrease(0, 0, 1); // +z 指向 wrapper/grease
             const G4double cosTheta = std::abs(momentumDir.dot(surfaceNormalToGrease));
@@ -188,22 +286,29 @@ void SiPINLCSteppingAction::UserSteppingAction(const G4Step *step)
                 const G4double x = postPosition.x();
                 const G4double y = postPosition.y();
 
-                analysisManager->FillH1(gID_H1_sipin_wl, wavelength);
-                analysisManager->FillH2(gID_H2_photon_pos, x, y);
+                if (analysisManager) {
+                    analysisManager->FillH1(gID_H1_sipin_wl, wavelength);
+                    analysisManager->FillH2(gID_H2_photon_pos, x, y);
+                }
                 fEventAction->fLightCollection++;
 
                 if (y >= -.5 * mm && y <= .5 * mm)
                 {
-                    analysisManager->FillH1(gID_H1_photon_posY0, x);
+                    if (analysisManager) {
+                        analysisManager->FillH1(gID_H1_photon_posY0, x);
+                    }
                 }
                 const double distanceToDiagonal = std::abs(x - y) / std::sqrt(2);
                 if (distanceToDiagonal <= 0.5 * mm)
                 {
                     const double distanceToOrigin = std::sqrt(x * x + y * y);
-                    if (x > 0)
-                        analysisManager->FillH1(gID_H1_photon_posYX, distanceToOrigin);
-                    else
-                        analysisManager->FillH1(gID_H1_photon_posYX, -distanceToOrigin);
+                    if (analysisManager) {
+                        if (x > 0) {
+                            analysisManager->FillH1(gID_H1_photon_posYX, distanceToOrigin);
+                        } else {
+                            analysisManager->FillH1(gID_H1_photon_posYX, -distanceToOrigin);
+                        }
+                    }
                 }
 
                 fEventAction->processedTrackIDs.insert(trackID);
@@ -319,6 +424,105 @@ void SiPINLCSteppingAction::UserSteppingAction(const G4Step *step)
         // - 以概率 1-p，保持原 Geant4 的“晶体-空气”边界（Fresnel/TIR）行为
         //
         // 说明：这是统计等效的“面片随机化”，用于避免复杂几何分片。
+        // === Analytic-friendly sanity wall override (A/B/C in docs/analytic_check2.md) ===
+        // Override crystal -> sc_gap boundary on SIDE/TOP only (never bottom) with:
+        // - SPECULAR mirror (R=1) or
+        // - LAMBERTIAN diffuse reflector (R in [0,1])
+        //
+        // This is used to create simple scenes with only one loss mechanism (wall absorption),
+        // while keeping the real bottom coupling (air/grease) physics.
+        if (g_sanity_wall_model != SANITY_WALL_OFF)
+        {
+            const G4bool isBoundary = (postStepPoint->GetStepStatus() == fGeomBoundary);
+            // IMPORTANT:
+            // Do NOT require postVolumeName == "sc_gap".
+            // For dielectric boundaries, Geant4 may perform TIR and keep the track in the pre-volume,
+            // which would bypass our override and break the "ideal wall" assumption.
+            // For analytic scenes, we override any SIDE/TOP boundary encounter of photons in the crystal.
+            const G4bool crystalBoundary = isBoundary && (preVolumeName == gN_sc_crystal);
+            if (crystalBoundary)
+            {
+                const auto touch = preStepPoint->GetTouchableHandle();
+                const G4ThreeVector local = touch->GetHistory()->GetTopTransform().TransformPoint(preStepPoint->GetPosition());
+
+                const G4double hx = 0.5 * g_crystalX;
+                const G4double hy = 0.5 * g_crystalY;
+                const G4double hz = 0.5 * g_crystalZ;
+                // Robust face classification tolerance:
+                // In MT + manual boundary overrides, the navigator can leave the boundary point slightly off.
+                // Use a larger tolerance than the raw surface tolerance to avoid misclassifying bottom hits as side hits.
+                const G4double st = G4GeometryTolerance::GetInstance()->GetSurfaceTolerance();
+                const G4double tol = std::max(1000.0 * st, 1.0 * um);
+
+                const G4bool onSideX = (std::abs(std::abs(local.x()) - hx) < tol);
+                const G4bool onSideY = (std::abs(std::abs(local.y()) - hy) < tol);
+                const G4bool onTop = (std::abs(local.z() - hz) < tol);
+                const G4bool onBottom = (std::abs(local.z() + hz) < tol);
+
+                const G4bool isSide = (onSideX || onSideY) && !(onTop || onBottom);
+                const G4bool apply =
+                    (isSide && g_sanity_wall_apply_side) ||
+                    (onTop && g_sanity_wall_apply_top);
+
+                if (apply)
+                {
+                    // Outward normal from crystal into gap
+                    G4ThreeVector n(0, 0, 0);
+                    if (onSideX) n = G4ThreeVector((local.x() > 0) ? 1.0 : -1.0, 0, 0);
+                    else if (onSideY) n = G4ThreeVector(0, (local.y() > 0) ? 1.0 : -1.0, 0);
+                    else if (onTop) n = G4ThreeVector(0, 0, 1.0);
+
+                    if (n.mag2() > 0.0)
+                    {
+                        // Count wall interaction (per photon)
+                        fEventAction->fWallHitCount++;
+
+                        G4double R = g_sanity_wall_reflectivity;
+                        if (R < 0.0) R = 0.0;
+                        if (R > 1.0) R = 1.0;
+
+                        if (G4UniformRand() < R)
+                        {
+                            G4ThreeVector newDir;
+                            if (g_sanity_wall_model == SANITY_WALL_SPECULAR)
+                            {
+                                // Specular reflection (mirror): reflect current direction about surface normal
+                                const G4ThreeVector d = aTrack->GetMomentumDirection();
+                                newDir = (d - 2.0 * (d.dot(n.unit())) * n.unit()).unit(); // points back into crystal
+                            }
+                            else
+                            {
+                                // Analytic sanity-check: use UNIFORM hemisphere to approximate "full mixing"
+                                // assumptions in docs/analytic_check2.md.
+                                newDir = SampleIsotropicHemisphere((-n).unit());
+                            }
+
+                            // Navigator stability: push the photon slightly back into the PRE volume (crystal).
+                            // This avoids GeomNav1002 floods during large-statistics sanity checks.
+                            const G4double stTol = G4GeometryTolerance::GetInstance()->GetSurfaceTolerance();
+                            // Navigator stability:
+                            // Keep the displacement at the geometry tolerance scale to avoid GeomNav1002 warning floods
+                            // (large manual shifts without a Locate call).
+                            const G4double push = 0.5 * stTol;
+                            const G4ThreeVector prePos = preStepPoint->GetPosition();
+                            const G4ThreeVector safePosInCrystal = prePos - push * n.unit(); // ensure inside crystal
+                            aTrack->SetPosition(safePosInCrystal);
+                            aTrack->SetMomentumDirection(newDir);
+                            aTrack->SetTrackStatus(fAlive);
+                            return;
+                        }
+                        else
+                        {
+                            // Absorbed by wall (maps to PTFE absorption channel in our bookkeeping)
+                            fEventAction->fEscapePTFE++;
+                            aTrack->SetTrackStatus(fStopAndKill);
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+
         if (g_side_contact_ratio > 0.0)
         {
             const G4bool isBoundary = (postStepPoint->GetStepStatus() == fGeomBoundary);
@@ -362,18 +566,14 @@ void SiPINLCSteppingAction::UserSteppingAction(const G4Step *step)
 
                         if (G4UniformRand() < R)
                         {
-                            // IMPORTANT (Navigator stability):
-                            // Do NOT "teleport back" into the crystal after the step has already crossed the boundary.
-                            // That causes GeomNav1002 floods and can stall.
-                            // Instead, keep the photon on the POST side (sc_gap) and set its direction
-                            // so that it will re-enter the crystal on the next step (statistical reflection).
                             const G4ThreeVector newDir = SampleLambertianHemisphere((-n).unit()); // points into crystal
 
+                            // Push slightly back into the crystal to avoid GeomNav1002 floods.
                             const G4double st = G4GeometryTolerance::GetInstance()->GetSurfaceTolerance();
-                            const G4double push = std::max(100.0 * st, 1.0 * um);
-                            const G4ThreeVector postPos = postStepPoint->GetPosition();
-                            const G4ThreeVector safePosInGap = postPos + push * n.unit(); // ensure we're inside sc_gap
-                            aTrack->SetPosition(safePosInGap);
+                            const G4double push = 0.5 * st;
+                            const G4ThreeVector prePos = preStepPoint->GetPosition();
+                            const G4ThreeVector safePosInCrystal = prePos - push * n.unit();
+                            aTrack->SetPosition(safePosInCrystal);
                             aTrack->SetMomentumDirection(newDir);
                             aTrack->SetTrackStatus(fAlive);
                             return;
@@ -402,21 +602,8 @@ void SiPINLCSteppingAction::UserSteppingAction(const G4Step *step)
             // 根据终止位置分类
             if (preVolumeName == gN_sc_crystal)
             {
-                // 在晶体内被吸收
-                fEventAction->fEscapeAbsorbed++;
-                // 调试输出：打印前10个被"晶体吸收"的光子的详细信息
-                static G4int debugCount = 0;
-                if (debugCount < 10) {
-                    const G4VProcess* proc = postStepPoint->GetProcessDefinedStep();
-                    G4String procName = proc ? proc->GetProcessName() : "unknown";
-                    G4cout << "[DEBUG] CrystalAbsorbed #" << debugCount 
-                           << " pos=" << preStepPoint->GetPosition()/mm << " mm"
-                           << " dir=" << aTrack->GetMomentumDirection()
-                           << " process=" << procName
-                           << " postVol=" << postVolumeName
-                           << G4endl;
-                    debugCount++;
-                }
+            // 在晶体内被吸收
+            fEventAction->fEscapeAbsorbed++;
             }
             else if (preVolumeName == gN_sc_wrapper)
             {

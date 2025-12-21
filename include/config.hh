@@ -23,11 +23,30 @@ enum ReflectorType {
     TEFLON = 3,
   };
 
+// ========= Sanity-check wall override (analytic-friendly simplified scenarios) =========
+// Implemented in SteppingAction at the crystal->sc_gap boundary.
+// Bottom face is never overridden (keeps real bottom coupling physics: air/grease).
+enum SanityWallModel {
+  SANITY_WALL_OFF = 0,
+  SANITY_WALL_SPECULAR = 1,
+  SANITY_WALL_LAMBERTIAN = 2
+};
+
+inline G4int g_sanity_wall_model = SANITY_WALL_OFF;
+inline G4double g_sanity_wall_reflectivity = 1.0; // 0..1 (used when wall_model != OFF)
+inline G4bool g_sanity_wall_apply_side = true;
+inline G4bool g_sanity_wall_apply_top = true;
+// Safety cap for analytic sanity runs: maximum number of steps per optical photon track.
+// Prevents pathological long runs for "specular + TIR-trapped" configurations.
+inline G4int g_sanity_max_steps = 20000;
+// For scenario A (specular mirror), optionally short-circuit TIR-trapped photons at step 1 (fast).
+inline G4bool g_sanity_fast_specular_tir = false;
+
 // surface properties
 inline G4OpticalSurface *surf_ESR = MyMaterials::surf_ESR();
 // PTFE反射率：论文中使用97.5%反射率 (2.5%透过率)
-// 调试：临时改为 100% 反射率，排除 PTFE 透过损失
-inline G4OpticalSurface *surf_Hreflex = MyMaterials::surf_Teflon(0.0);  // 100% reflectivity (debug)
+// 采用论文基准：97.5% reflectivity（2.5% transmittance）
+inline G4OpticalSurface *surf_Hreflex = MyMaterials::surf_Teflon(0.025);
 inline G4OpticalSurface *surf_Lreflex = MyMaterials::surf_Teflon(0.4);
 
 // g_ means global_
@@ -42,6 +61,10 @@ inline G4bool g_has_cherenkov = false;       // 是否考虑切伦科夫光
 // 设为 false 时，恢复正常的 gamma/electron 源逻辑。
 inline G4bool g_debug_opticalphoton = true;  // ← 调试模式：发射单色光子
 
+// 调试光子波长（用于解析 sanity-check / 单色对照）
+// 550 nm 对应 2.254 eV（E = 1240 eV·nm / λ）
+inline G4double g_debug_opticalphoton_wavelength = 550.0 * nm;
+
 // ========== 基准源参数 ==========
 // 正常模式下（g_debug_opticalphoton=false）使用的粒子类型和能量
 // 按你的要求：GAGG 中心 662 keV 电子激发闪烁谱
@@ -53,7 +76,18 @@ inline G4double g_grease_thickness = 0*mm;  // 无grease，测试底部空气层
 // 晶体与 SiPIN 之间如果“没有 grease”，按经验应存在一层很薄的空气层（避免晶体直接接触窗口材料）
 inline G4double g_bottom_airgap_thickness = 10*um;  // 默认 10um，可调
 inline G4double g_top_airgap_thickness = 0.1*mm;  // 顶面空气层厚度 (论文基准值100μm)
-inline G4double g_side_contact_ratio = 0.5;  // 侧面贴合比例 0~1, 用于概率边界法 (论文基准值50%)
+// 侧面贴合比例 0~1, 用于概率边界法（建议默认关闭；做贴合实验时在 mac 中显式打开）
+inline G4double g_side_contact_ratio = 0.0;
+
+// 晶体表面微粗糙（UNIFIED sigma_alpha, 单位 rad）
+// 0 表示理想镜面界面（Fresnel + 完全平整）；>0 表示微表面法线分布展宽（角度扩散），可打破“困光/导波”。
+inline G4double g_crystal_sigma_alpha = 0.0;  // rad
+
+// 晶体自吸收强度：通过缩放 ABSLENGTH 来实现（>1 表示吸收长度变长，自吸收更弱）
+// 注意：MyMaterials::GAGG_Ce_Mg(scaleFactor) 本身也支持这个含义；这里用于运行时通过 UI 调整。
+inline G4double g_crystal_absorption_scale = 1.0;
+// 用于避免重复累乘的“当前已应用值”（由 DetectorConstruction 在构建几何时维护）
+inline G4double g_crystal_absorption_scale_applied = 1.0;
 
 // SiPIN 探测概率模型（用于 grease(or airgap) → Si 界面）
 // p_det = 1 - R(λ,θ) 由你拟合 Si3N4 厚度的 TMM + 厂商 QE 得到
@@ -140,6 +174,9 @@ inline G4int gID_H1_sipin_hitCount;  // 每个光子撞击SiPIN的次数分布
 inline G4int gID_H1_escape_channel;  // 光子逃逸/损失通道分类 (0:被晶体吸收, 1:从顶面逃逸, 2:从侧面逃逸, 3:被PTFE吸收, 4:其他)
 inline G4int gID_H1_photon_generated; // 每事件产生的闪烁光子数
 inline G4int gID_H1_photon_pathlength; // 光子在晶体内的总路程 (mm)，用于理解自吸收效应
+
+// Sanity-check helper: wall hit count (crystal side/top override)
+inline G4int gID_H1_wall_hitCount; // number of wall interactions per photon (side/top only)
 
 
 // source

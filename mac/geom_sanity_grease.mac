@@ -17,6 +17,9 @@
 /SiPINLC/geometry/topAirGap 0.10 mm
 /SiPINLC/geometry/sideGap 0.10 mm
 
+# IMPORTANT: disable probabilistic side-contact boundary for this sanity test
+/SiPINLC/geometry/sideContactRatio 0.0
+
 /run/initialize
 /run/beamOn 10000
 

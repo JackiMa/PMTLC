@@ -43,13 +43,17 @@
 
 #include "G4AnalysisManager.hh"
 #include "G4AccumulableManager.hh"
+#include "G4RunManager.hh"
 
 #include "config.hh"
+#include "SiPINLCRunStats.hh"
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 SiPINLCRunAction::SiPINLCRunAction(SiPINLCPrimaryGeneratorAction *prim)
     : G4UserRunAction(), fRun(nullptr), fPrimary(prim)
 {
+  // Register accumulables for MT-safe run summaries (no RTTI required).
+  SiPINLCRunStats::Instance().RegisterAccumulables();
 
   auto analysisManager = G4AnalysisManager::Instance();
   analysisManager->SetVerboseLevel(1);
@@ -117,6 +121,9 @@ G4Run *SiPINLCRunAction::GenerateRun()
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 void SiPINLCRunAction::BeginOfRunAction(const G4Run *)
 {
+  // Reset accumulables (thread-local) at the beginning of each run.
+  SiPINLCRunStats::Instance().Reset();
+
   if (fPrimary)
   {
     G4double energy;
@@ -141,8 +148,21 @@ void SiPINLCRunAction::BeginOfRunAction(const G4Run *)
   //
   auto analysisManager = G4AnalysisManager::Instance();
 
+  // For analytic sanity-check runs (A/B/C), we only care about run_data.csv.
+  // ROOT I/O in MT can crash on some systems; skip opening the analysis file to keep MT stable.
+  if (g_sanity_wall_model != SANITY_WALL_OFF)
+  {
+    fAnalysisFileOpened = false;
+    if (isMaster)
+    {
+      G4cout << "[Sanity] Skip analysis file output (ROOT) for MT stability; only run_data.csv will be produced." << G4endl;
+    }
+    return;
+  }
+
   G4String fileName = getNewfileName("LYsimulations");
-  if (!analysisManager->OpenFile(fileName))
+  fAnalysisFileOpened = analysisManager->OpenFile(fileName);
+  if (!fAnalysisFileOpened)
   {
     G4cerr << "Error: could not open file " << fileName << G4endl;
   }
@@ -161,6 +181,12 @@ void SiPINLCRunAction::EndOfRunAction(const G4Run * run)
 
   auto analysisManager = G4AnalysisManager::Instance();
 
+  // Ensure accumulables are merged to master before we write summary CSV.
+  // (In many setups this is already handled by RunManager, but calling explicitly is safe.)
+  if (isMaster)
+  {
+    SiPINLCRunStats::Instance().Merge();
+  }
 
   if (isMaster)
   {
@@ -184,38 +210,41 @@ void SiPINLCRunAction::EndOfRunAction(const G4Run * run)
               << "Escaped_PTFE,"
               << "Escaped_Other,"
               << "Mean_IncidenceAngle_deg,"
-              << "Mean_HitCount" << "\n";
+              << "Mean_HitCount,"
+              << "EventsProcessed,"
+              << "EventsRequested" << "\n";
     }
 
-    // 统计光子产生与收集
-    // - 常规模式：效率 = siCounts / (scint + cherenkov)
-    // - opticalphoton 调试模式：scint/cherenkov 为 0，此时用每 event 1 个 primary optical photon 的近似：
-    //     efficiency ≈ siCounts / N_events
-    const G4int nEvents = run->GetNumberOfEvent();
-    G4int scintillationPhotonCount = analysisManager->GetH1(gID_H1_sc_wl)->entries();
-    G4int cherenkovPhotonCount = analysisManager->GetH1(gID_H1_ch_wl)->entries();
-    G4int siCounts = analysisManager->GetH1(gID_H1_sipin_wl)->entries();
+    // 统计光子产生与收集（使用 RunStats/Accumulable，保证 MT 下正确）
+    const auto& stats = SiPINLCRunStats::Instance();
+    const G4int nEventsAcc = stats.NEvents();
+    const G4int nEventsRequested = run->GetNumberOfEventToBeProcessed();
+    const G4int scintillationPhotonCount = stats.ScintGenerated();
+    const G4int cherenkovPhotonCount = stats.CherenkovGenerated();
+    const G4int siCounts = stats.SiHits();
     G4double lightCollectionEfficiency = 0.0;
     if ((scintillationPhotonCount + cherenkovPhotonCount) > 0) {
       lightCollectionEfficiency = (G4double)siCounts / (scintillationPhotonCount + cherenkovPhotonCount);
-    } else if (nEvents > 0) {
-      lightCollectionEfficiency = (G4double)siCounts / nEvents;
+    } else if (nEventsRequested > 0) {
+      // For primary optical-photon sanity runs: use requested events as the denominator (exact),
+      // because per-event accumulation can be affected by MT scheduling and should not change the meaning of ε_col.
+      lightCollectionEfficiency = (G4double)siCounts / nEventsRequested;
+    } else if (nEventsAcc > 0) {
+      lightCollectionEfficiency = (G4double)siCounts / nEventsAcc;
     }
     
-    // === 论文所需：逃逸通道统计 ===
-    auto escapeHist = analysisManager->GetH1(gID_H1_escape_channel);
-    G4int escapeCrystal = escapeHist ? escapeHist->bin_entries(escapeHist->coord_to_index(0)) : 0;
-    G4int escapeTopAir = escapeHist ? escapeHist->bin_entries(escapeHist->coord_to_index(1)) : 0;
-    G4int escapeSideAir = escapeHist ? escapeHist->bin_entries(escapeHist->coord_to_index(2)) : 0;
-    G4int escapePTFE = escapeHist ? escapeHist->bin_entries(escapeHist->coord_to_index(3)) : 0;
-    G4int escapeOther = escapeHist ? escapeHist->bin_entries(escapeHist->coord_to_index(4)) : 0;
+    // === 论文所需：逃逸通道统计（Accumulable） ===
+    const G4int escapeCrystal = stats.EscCrystal();
+    const G4int escapeTopAir = stats.EscTop();
+    const G4int escapeSideAir = stats.EscSide();
+    const G4int escapePTFE = stats.EscPTFE();
+    const G4int escapeOther = stats.EscOther();
     
     // === 论文所需：入射角和撞击次数的均值 ===
-    auto thetaHist = analysisManager->GetH1(gID_H1_sipin_theta);
-    G4double meanTheta = thetaHist ? thetaHist->mean() : 0.0;
-    
-    auto hitCountHist = analysisManager->GetH1(gID_H1_sipin_hitCount);
-    G4double meanHitCount = hitCountHist ? hitCountHist->mean() : 0.0;
+    const G4int thetaN = stats.ThetaCount();
+    const G4double meanTheta = (thetaN > 0) ? (stats.ThetaSumDeg() / thetaN) : 0.0;
+    const G4int hitN = stats.HitCountN();
+    const G4double meanHitCount = (hitN > 0) ? (stats.HitCountSum() / hitN) : 0.0;
 
     // 写入数据
     outFile << runID << ","
@@ -229,13 +258,18 @@ void SiPINLCRunAction::EndOfRunAction(const G4Run * run)
             << escapePTFE << ","
             << escapeOther << ","
             << meanTheta << ","
-            << meanHitCount << "\n";
+            << meanHitCount << ","
+            << nEventsAcc << ","
+            << nEventsRequested << "\n";
 
     // 关闭文件
     outFile.close();
   }
-  analysisManager->Write();
-  analysisManager->CloseFile();
+  if (fAnalysisFileOpened)
+  {
+    analysisManager->Write();
+    analysisManager->CloseFile();
+  }
 
   G4cout << "Data written and file closed." << G4endl;
 }

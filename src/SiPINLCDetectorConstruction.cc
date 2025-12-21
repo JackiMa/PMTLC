@@ -34,6 +34,55 @@
 #include "config.hh"
 #include "SiPINLCParameterMessenger.hh"
 
+namespace {
+  void ApplyAbsorptionScaleIfNeeded(G4Material* mat, G4double targetScale)
+  {
+    if (!mat) return;
+    if (targetScale <= 0.0) return;
+    if (std::abs(targetScale - g_crystal_absorption_scale_applied) < 1e-12) return;
+
+    auto* mpt = mat->GetMaterialPropertiesTable();
+    if (!mpt) return;
+    auto* absVec = mpt->GetProperty("ABSLENGTH");
+    if (!absVec) return;
+
+    const G4double e550 = (1239.841939 * eV * nm) / g_debug_opticalphoton_wavelength;
+    const G4double Lbefore = absVec->Value(e550);
+    const G4double factor = targetScale / g_crystal_absorption_scale_applied;
+
+    std::vector<G4double> energies;
+    std::vector<G4double> absScaled;
+    energies.reserve(absVec->GetVectorLength());
+    absScaled.reserve(absVec->GetVectorLength());
+    for (size_t i = 0; i < absVec->GetVectorLength(); ++i)
+    {
+      const G4double e = absVec->Energy(i);
+      energies.push_back(e);
+      // IMPORTANT: Value(x) takes energy x, NOT an index. Use Value(Energy(i)) to sample at the tabulated node.
+      absScaled.push_back(absVec->Value(e) * factor);
+    }
+
+    // Geant4 requires energies to be strictly increasing.
+    if (energies.size() >= 2 && energies.front() > energies.back())
+    {
+      std::reverse(energies.begin(), energies.end());
+      std::reverse(absScaled.begin(), absScaled.end());
+    }
+
+    // Replace ABSLENGTH with scaled one (avoid cumulative scaling on repeated rebuilds)
+    mpt->RemoveProperty("ABSLENGTH");
+    mpt->AddProperty("ABSLENGTH", energies, absScaled);
+
+    g_crystal_absorption_scale_applied = targetScale;
+    auto* absNew = mpt->GetProperty("ABSLENGTH");
+    const G4double L550 = absNew ? absNew->Value(e550) : -1.0;
+    G4cout << "[Material] Crystal ABSLENGTH scaled by factor=" << factor
+           << " (applied=" << g_crystal_absorption_scale_applied << "), "
+           << "ABSLENGTH(λ=" << (g_debug_opticalphoton_wavelength/nm) << " nm): "
+           << (Lbefore/mm) << " mm -> " << (L550/mm) << " mm" << G4endl;
+  }
+}
+
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 // 在这里对类相关参数进行初始化
 SiPINLCDetectorConstruction::SiPINLCDetectorConstruction()
@@ -71,6 +120,9 @@ G4VPhysicalVolume *SiPINLCDetectorConstruction::Construct()
   G4Box *s_world = new G4Box("World", 0.5 * g_worldX, 0.5 * g_worldY, 0.5 * g_worldZ);
   G4LogicalVolume *l_world = new G4LogicalVolume(s_world, g_world_material, "World");
   MyPhysicalVolume *p_world = new MyPhysicalVolume(0, G4ThreeVector(), "World", l_world, nullptr, false, 0, checkOverlaps);
+
+  // Apply absorption scaling (e.g. "ABSLENGTH × 10" to suppress self-absorption for analytic sanity checks)
+  ApplyAbsorptionScaleIfNeeded(g_crystal_material, g_crystal_absorption_scale);
 
   // ====================================
   // ====== Photomultiplier tubes =======
@@ -145,6 +197,7 @@ G4VPhysicalVolume *SiPINLCDetectorConstruction::Construct()
     G4Box *s_gap = new G4Box(name, 0.5 * gapXY, 0.5 * gapXY, 0.5 * gapZ);
     G4LogicalVolume *l_gap = new G4LogicalVolume(s_gap, g_world_material, name);
     MyPhysicalVolume *p_gap = new MyPhysicalVolume(0, gap_pos, name, l_gap, p_wrapper, false, 0, checkOverlaps);
+    fVolumeMap[name] = p_gap;
     p_crystal_Container = p_gap;
 
     VisAtt = new G4VisAttributes(G4Colour(1, 1, 1, 0.1));
@@ -311,6 +364,7 @@ G4VPhysicalVolume *SiPINLCDetectorConstruction::Construct()
     G4Tubs *s_gap = new G4Tubs(name, 0, gapR, 0.5 * gapH, 0, 360 * deg);
     G4LogicalVolume *l_gap = new G4LogicalVolume(s_gap, g_world_material, name);
     MyPhysicalVolume *p_gap = new MyPhysicalVolume(0, gap_pos, name, l_gap, p_wrapper, false, 0, checkOverlaps);
+    fVolumeMap[name] = p_gap;
     p_crystal_Container = p_gap;
 
     VisAtt = new G4VisAttributes(G4Colour(1, 1, 1, 0.1));
@@ -338,6 +392,36 @@ G4VPhysicalVolume *SiPINLCDetectorConstruction::Construct()
   crystalVisAtt->SetVisibility(true);
   l_crystal->SetVisAttributes(crystalVisAtt);
   
+  // === Crystal surface micro-roughness (UNIFIED sigma_alpha) ===
+  // Apply on crystal <-> sc_gap interfaces.
+  // - sigma_alpha = 0: keep default smooth Fresnel interface
+  // - sigma_alpha > 0: micro-facet normal spread -> angular diffusion -> helps break trapped modes
+  if (g_crystal_sigma_alpha > 0.0)
+  {
+    auto itGap = fVolumeMap.find("sc_gap");
+    if (itGap != fVolumeMap.end() && itGap->second)
+    {
+      auto* p_gap = itGap->second;
+      auto* surfCrystal = new G4OpticalSurface("CrystalAir_UNIFIED");
+      surfCrystal->SetType(dielectric_dielectric);
+      surfCrystal->SetModel(unified);
+      // Use ground finish so sigma_alpha drives micro-facet normal distribution (angular diffusion).
+      surfCrystal->SetFinish(ground);
+      surfCrystal->SetSigmaAlpha(g_crystal_sigma_alpha);
+
+      // Border surfaces are directional; define both directions for symmetry.
+      new G4LogicalBorderSurface("CrystalToGapSurface", p_crystal, p_gap, surfCrystal);
+      new G4LogicalBorderSurface("GapToCrystalSurface", p_gap, p_crystal, surfCrystal);
+
+      G4cout << "[Surface] Crystal sigma_alpha (UNIFIED) = " << g_crystal_sigma_alpha
+             << " rad applied on crystal <-> sc_gap." << G4endl;
+    }
+    else
+    {
+      G4cerr << "[Surface] WARNING: sc_gap not found; cannot apply crystal sigma_alpha surface." << G4endl;
+    }
+  }
+
 
 // Grease 创建：TEFLON 类型在上面的分支中已经在 gap 内创建了
 // 这里只处理非 TEFLON 类型（CUBE, CYLINDER）

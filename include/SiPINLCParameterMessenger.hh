@@ -35,12 +35,14 @@ private:
     G4UIdirectory* fGeometryDir;
     G4UIdirectory* fMaterialDir;
     G4UIdirectory* fSipinDir;
+    G4UIdirectory* fSanityDir;
 
     // Geometry commands
     G4UIcmdWithADoubleAndUnit* fGreaseThicknessCmd;
     G4UIcmdWithADoubleAndUnit* fBottomAirGapCmd;
     G4UIcmdWithADoubleAndUnit* fTopAirGapCmd;
     G4UIcmdWithADoubleAndUnit* fSideGapCmd;
+    G4UIcmdWithADoubleAndUnit* fCrystalSigmaAlphaCmd; // UNIFIED sigma_alpha (rad)
     G4UIcmdWithABool* fSideContactCmd;  // true=贴合, false=有空气层
     G4UIcmdWithADouble* fSideContactRatioCmd; // 0~1 概率边界法（贴合比例）
     
@@ -54,6 +56,14 @@ private:
     G4UIcmdWithADouble*   fSipinPdetConstCmd;    // const p_det
     G4UIcmdWithAString*   fSipinPdetFileCmd;     // CSV file
     G4UIcmdWithAnInteger* fSipinMaxInterfaceHitsCmd; // safety cap
+
+    // Sanity-check wall override (analytic-friendly)
+    G4UIcmdWithAnInteger* fSanityWallModelCmd;        // 0(off)/1(specular)/2(lambertian)
+    G4UIcmdWithADouble*   fSanityWallReflectivityCmd; // 0..1
+    G4UIcmdWithABool*     fSanityWallApplySideCmd;    // apply to side faces
+    G4UIcmdWithABool*     fSanityWallApplyTopCmd;     // apply to top face
+    G4UIcmdWithAnInteger* fSanityMaxStepsCmd;         // max steps per optical photon (sanity runs)
+    G4UIcmdWithABool*     fSanityFastSpecularTirCmd;  // fast TIR short-circuit for specular sanity
 };
 
 #endif

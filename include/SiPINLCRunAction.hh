@@ -36,7 +36,6 @@
 
 #include "globals.hh"
 #include "G4UserRunAction.hh"
-#include "G4Accumulable.hh"
 #include <fstream>
 
 
@@ -64,6 +63,7 @@ class SiPINLCRunAction : public G4UserRunAction
   SiPINLCPrimaryGeneratorAction* fPrimary;
 
   std::ofstream outputFile;
+  bool fAnalysisFileOpened = false;
 
   bool fileExists(const G4String& fileName);
   G4String getNewfileName(G4String baseFileName = "SiPINLC");

@@ -79,11 +79,19 @@ class SiPINLCEventAction : public G4UserEventAction
   
   // === 论文所需的统计量 ===
   G4int fPhotonGenerated = 0;     // 本事件产生的闪烁光子数
+  G4int fCherenkovGenerated = 0;  // 本事件产生的切伦科夫光子数
   G4int fEscapeAbsorbed = 0;      // 被晶体自吸收的光子数
   G4int fEscapeTopAir = 0;        // 从顶面空气层逃逸的光子数
   G4int fEscapeSideAir = 0;       // 从侧面空气层逃逸的光子数
   G4int fEscapePTFE = 0;          // 被PTFE吸收的光子数
   G4int fEscapeOther = 0;         // 其他损失通道
+
+  // === 论文所需：用于 run 级别均值统计（避免 MT 下读取直方图未合并）===
+  G4double fThetaSumDeg = 0.0;    // 本事件所有“撞击SiPIN界面”的入射角求和（deg）
+  G4int fThetaCount = 0;          // 本事件入射角样本数（=撞击次数）
+
+  // === analytic sanity-check: wall interaction count (side/top only, from stepping override) ===
+  G4int fWallHitCount = 0;
 
 };
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
