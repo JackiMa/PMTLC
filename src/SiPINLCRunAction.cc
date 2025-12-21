@@ -148,21 +148,8 @@ void SiPINLCRunAction::BeginOfRunAction(const G4Run *)
   //
   auto analysisManager = G4AnalysisManager::Instance();
 
-  // For analytic sanity-check runs (A/B/C), we only care about run_data.csv.
-  // ROOT I/O in MT can crash on some systems; skip opening the analysis file to keep MT stable.
-  if (g_sanity_wall_model != SANITY_WALL_OFF)
-  {
-    fAnalysisFileOpened = false;
-    if (isMaster)
-    {
-      G4cout << "[Sanity] Skip analysis file output (ROOT) for MT stability; only run_data.csv will be produced." << G4endl;
-    }
-    return;
-  }
-
   G4String fileName = getNewfileName("LYsimulations");
-  fAnalysisFileOpened = analysisManager->OpenFile(fileName);
-  if (!fAnalysisFileOpened)
+  if (!analysisManager->OpenFile(fileName))
   {
     G4cerr << "Error: could not open file " << fileName << G4endl;
   }
@@ -210,27 +197,20 @@ void SiPINLCRunAction::EndOfRunAction(const G4Run * run)
               << "Escaped_PTFE,"
               << "Escaped_Other,"
               << "Mean_IncidenceAngle_deg,"
-              << "Mean_HitCount,"
-              << "EventsProcessed,"
-              << "EventsRequested" << "\n";
+              << "Mean_HitCount" << "\n";
     }
 
     // 统计光子产生与收集（使用 RunStats/Accumulable，保证 MT 下正确）
     const auto& stats = SiPINLCRunStats::Instance();
-    const G4int nEventsAcc = stats.NEvents();
-    const G4int nEventsRequested = run->GetNumberOfEventToBeProcessed();
+    const G4int nEvents = stats.NEvents();
     const G4int scintillationPhotonCount = stats.ScintGenerated();
     const G4int cherenkovPhotonCount = stats.CherenkovGenerated();
     const G4int siCounts = stats.SiHits();
     G4double lightCollectionEfficiency = 0.0;
     if ((scintillationPhotonCount + cherenkovPhotonCount) > 0) {
       lightCollectionEfficiency = (G4double)siCounts / (scintillationPhotonCount + cherenkovPhotonCount);
-    } else if (nEventsRequested > 0) {
-      // For primary optical-photon sanity runs: use requested events as the denominator (exact),
-      // because per-event accumulation can be affected by MT scheduling and should not change the meaning of ε_col.
-      lightCollectionEfficiency = (G4double)siCounts / nEventsRequested;
-    } else if (nEventsAcc > 0) {
-      lightCollectionEfficiency = (G4double)siCounts / nEventsAcc;
+    } else if (nEvents > 0) {
+      lightCollectionEfficiency = (G4double)siCounts / nEvents;
     }
     
     // === 论文所需：逃逸通道统计（Accumulable） ===
@@ -258,18 +238,13 @@ void SiPINLCRunAction::EndOfRunAction(const G4Run * run)
             << escapePTFE << ","
             << escapeOther << ","
             << meanTheta << ","
-            << meanHitCount << ","
-            << nEventsAcc << ","
-            << nEventsRequested << "\n";
+            << meanHitCount << "\n";
 
     // 关闭文件
     outFile.close();
   }
-  if (fAnalysisFileOpened)
-  {
-    analysisManager->Write();
-    analysisManager->CloseFile();
-  }
+  analysisManager->Write();
+  analysisManager->CloseFile();
 
   G4cout << "Data written and file closed." << G4endl;
 }

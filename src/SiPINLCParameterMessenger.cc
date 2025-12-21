@@ -15,7 +15,6 @@
 #include "G4UIcmdWithAnInteger.hh"
 #include "G4UIcmdWithAString.hh"
 #include "G4SystemOfUnits.hh"
-#include "G4Threading.hh"
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
@@ -181,18 +180,6 @@ SiPINLCParameterMessenger::SiPINLCParameterMessenger()
     fSanityWallApplyTopCmd->SetGuidance("Apply wall override to the top face (+z face). Bottom face is never overridden.");
     fSanityWallApplyTopCmd->SetParameterName("flag", false);
     fSanityWallApplyTopCmd->AvailableForStates(G4State_PreInit, G4State_Idle);
-
-    fSanityMaxStepsCmd = new G4UIcmdWithAnInteger("/SiPINLC/sanity/maxSteps", this);
-    fSanityMaxStepsCmd->SetGuidance("Safety cap: maximum number of steps per optical photon in sanity-check runs.");
-    fSanityMaxStepsCmd->SetGuidance("Used to prevent pathological long runs for specular+TIR trapped configurations.");
-    fSanityMaxStepsCmd->SetParameterName("n", false);
-    fSanityMaxStepsCmd->SetRange("n>=0");
-    fSanityMaxStepsCmd->AvailableForStates(G4State_PreInit, G4State_Idle);
-
-    fSanityFastSpecularTirCmd = new G4UIcmdWithABool("/SiPINLC/sanity/fastSpecularTIR", this);
-    fSanityFastSpecularTirCmd->SetGuidance("Fast mode for Scenario A: short-circuit TIR-trapped photons at step 1 (specular wall only).");
-    fSanityFastSpecularTirCmd->SetParameterName("flag", false);
-    fSanityFastSpecularTirCmd->AvailableForStates(G4State_PreInit, G4State_Idle);
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
@@ -217,8 +204,6 @@ SiPINLCParameterMessenger::~SiPINLCParameterMessenger()
     delete fSanityWallReflectivityCmd;
     delete fSanityWallApplySideCmd;
     delete fSanityWallApplyTopCmd;
-    delete fSanityMaxStepsCmd;
-    delete fSanityFastSpecularTirCmd;
     delete fSanityDir;
     delete fGeometryDir;
     delete fMaterialDir;
@@ -230,169 +215,115 @@ SiPINLCParameterMessenger::~SiPINLCParameterMessenger()
 
 void SiPINLCParameterMessenger::SetNewValue(G4UIcommand* command, G4String newValue)
 {
-    const bool isMaster = G4Threading::IsMasterThread();
     // Geometry parameters
     if (command == fGreaseThicknessCmd) {
         g_grease_thickness = fGreaseThicknessCmd->GetNewDoubleValue(newValue);
-        if (isMaster) {
-            G4cout << "=== Parameter Update ===" << G4endl;
-            G4cout << "Grease thickness set to: " << g_grease_thickness/um << " um" << G4endl;
-        }
+        G4cout << "=== Parameter Update ===" << G4endl;
+        G4cout << "Grease thickness set to: " << g_grease_thickness/um << " um" << G4endl;
     }
     else if (command == fBottomAirGapCmd) {
         g_bottom_airgap_thickness = fBottomAirGapCmd->GetNewDoubleValue(newValue);
-        if (isMaster) {
-            G4cout << "=== Parameter Update ===" << G4endl;
-            G4cout << "Bottom air gap set to: " << g_bottom_airgap_thickness/um << " um" << G4endl;
-        }
+        G4cout << "=== Parameter Update ===" << G4endl;
+        G4cout << "Bottom air gap set to: " << g_bottom_airgap_thickness/um << " um" << G4endl;
     }
     else if (command == fTopAirGapCmd) {
         g_top_airgap_thickness = fTopAirGapCmd->GetNewDoubleValue(newValue);
-        if (isMaster) {
-            G4cout << "=== Parameter Update ===" << G4endl;
-            G4cout << "Top air gap set to: " << g_top_airgap_thickness/um << " um" << G4endl;
-        }
+        G4cout << "=== Parameter Update ===" << G4endl;
+        G4cout << "Top air gap set to: " << g_top_airgap_thickness/um << " um" << G4endl;
     }
     else if (command == fSideGapCmd) {
         g_gap_thickness = fSideGapCmd->GetNewDoubleValue(newValue);
-        if (isMaster) {
-            G4cout << "=== Parameter Update ===" << G4endl;
-            G4cout << "Side gap set to: " << g_gap_thickness/um << " um" << G4endl;
-        }
+        G4cout << "=== Parameter Update ===" << G4endl;
+        G4cout << "Side gap set to: " << g_gap_thickness/um << " um" << G4endl;
     }
     else if (command == fCrystalSigmaAlphaCmd) {
         g_crystal_sigma_alpha = fCrystalSigmaAlphaCmd->GetNewDoubleValue(newValue);
-        if (isMaster) {
-            G4cout << "=== Parameter Update ===" << G4endl;
-            G4cout << "Crystal sigma_alpha set to: " << g_crystal_sigma_alpha << " rad" << G4endl;
-            G4cout << "NOTE: Requires geometry rebuild if already initialized." << G4endl;
-        }
+        G4cout << "=== Parameter Update ===" << G4endl;
+        G4cout << "Crystal sigma_alpha set to: " << g_crystal_sigma_alpha << " rad" << G4endl;
+        G4cout << "NOTE: Requires geometry rebuild if already initialized." << G4endl;
     }
     else if (command == fSideContactCmd) {
         G4bool contact = fSideContactCmd->GetNewBoolValue(newValue);
         // 统计等效法：contact=true时设置gap=0，contact=false时使用默认gap
         if (contact) {
             g_gap_thickness = 0.0;
-            if (isMaster) {
-                G4cout << "=== Parameter Update ===" << G4endl;
-                G4cout << "Side contact mode: DIRECT CONTACT (gap=0)" << G4endl;
-            }
+            G4cout << "=== Parameter Update ===" << G4endl;
+            G4cout << "Side contact mode: DIRECT CONTACT (gap=0)" << G4endl;
         } else {
             g_gap_thickness = 0.1*mm;  // 默认空气层厚度
-            if (isMaster) {
-                G4cout << "=== Parameter Update ===" << G4endl;
-                G4cout << "Side contact mode: AIR GAP (gap=" << g_gap_thickness/um << " um)" << G4endl;
-            }
+            G4cout << "=== Parameter Update ===" << G4endl;
+            G4cout << "Side contact mode: AIR GAP (gap=" << g_gap_thickness/um << " um)" << G4endl;
         }
     }
     else if (command == fSideContactRatioCmd) {
         g_side_contact_ratio = fSideContactRatioCmd->GetNewDoubleValue(newValue);
-        if (isMaster) {
-            G4cout << "=== Parameter Update ===" << G4endl;
-            G4cout << "Side contact ratio (probabilistic): " << g_side_contact_ratio << G4endl;
-            G4cout << "NOTE: Takes effect immediately (stepping logic), no geometry rebuild needed." << G4endl;
-        }
+        G4cout << "=== Parameter Update ===" << G4endl;
+        G4cout << "Side contact ratio (probabilistic): " << g_side_contact_ratio << G4endl;
+        G4cout << "NOTE: Takes effect immediately (stepping logic), no geometry rebuild needed." << G4endl;
     }
     // Material parameters
     else if (command == fAbsorptionScaleCmd) {
         // 这个需要在材料重建时使用
         G4double scale = fAbsorptionScaleCmd->GetNewDoubleValue(newValue);
-        g_crystal_absorption_scale = scale;
-        if (isMaster) {
-            G4cout << "=== Parameter Update ===" << G4endl;
-            G4cout << "Absorption scale factor: " << scale << G4endl;
-            G4cout << "NOTE: Requires geometry rebuild (/run/reinitializeGeometry)" << G4endl;
-        }
+        G4cout << "=== Parameter Update ===" << G4endl;
+        G4cout << "Absorption scale factor: " << scale << G4endl;
+        G4cout << "NOTE: Requires geometry rebuild (/run/reinitializeGeometry)" << G4endl;
     }
     else if (command == fEffectiveAbsLengthCmd) {
         G4double length = fEffectiveAbsLengthCmd->GetNewDoubleValue(newValue);
-        if (isMaster) {
-            G4cout << "=== Parameter Update ===" << G4endl;
-            G4cout << "Effective absorption length: " << length/mm << " mm" << G4endl;
-            G4cout << "NOTE: Requires geometry rebuild (/run/reinitializeGeometry)" << G4endl;
-        }
+        G4cout << "=== Parameter Update ===" << G4endl;
+        G4cout << "Effective absorption length: " << length/mm << " mm" << G4endl;
+        G4cout << "NOTE: Requires geometry rebuild (/run/reinitializeGeometry)" << G4endl;
     }
     else if (command == fPTFEReflectivityCmd) {
         G4double refl = fPTFEReflectivityCmd->GetNewDoubleValue(newValue);
-        if (isMaster) {
-            G4cout << "=== Parameter Update ===" << G4endl;
-            G4cout << "PTFE reflectivity: " << refl*100 << "%" << G4endl;
-            G4cout << "NOTE: Requires geometry rebuild (/run/reinitializeGeometry)" << G4endl;
-        }
+        G4cout << "=== Parameter Update ===" << G4endl;
+        G4cout << "PTFE reflectivity: " << refl*100 << "%" << G4endl;
+        G4cout << "NOTE: Requires geometry rebuild (/run/reinitializeGeometry)" << G4endl;
     }
     // SiPIN P_det model
     else if (command == fSipinPdetModeCmd) {
         g_sipin_pdet_mode = fSipinPdetModeCmd->GetNewIntValue(newValue);
-        if (isMaster) {
-            G4cout << "=== Parameter Update ===" << G4endl;
-            G4cout << "SiPIN P_det mode set to: " << g_sipin_pdet_mode << " (0=off,1=const,2=csv)" << G4endl;
-        }
+        G4cout << "=== Parameter Update ===" << G4endl;
+        G4cout << "SiPIN P_det mode set to: " << g_sipin_pdet_mode << " (0=off,1=const,2=csv)" << G4endl;
     }
     else if (command == fSipinPdetConstCmd) {
         g_sipin_pdet_const = fSipinPdetConstCmd->GetNewDoubleValue(newValue);
-        if (isMaster) {
-            G4cout << "=== Parameter Update ===" << G4endl;
-            G4cout << "SiPIN P_det const set to: " << g_sipin_pdet_const << G4endl;
-        }
+        G4cout << "=== Parameter Update ===" << G4endl;
+        G4cout << "SiPIN P_det const set to: " << g_sipin_pdet_const << G4endl;
     }
     else if (command == fSipinPdetFileCmd) {
         g_sipin_pdet_csv = newValue;
-        if (isMaster) {
-            G4cout << "=== Parameter Update ===" << G4endl;
-            G4cout << "SiPIN P_det CSV file set to: " << g_sipin_pdet_csv << G4endl;
-        }
+        G4cout << "=== Parameter Update ===" << G4endl;
+        G4cout << "SiPIN P_det CSV file set to: " << g_sipin_pdet_csv << G4endl;
     }
     else if (command == fSipinMaxInterfaceHitsCmd) {
         g_sipin_max_interface_hits = fSipinMaxInterfaceHitsCmd->GetNewIntValue(newValue);
-        if (isMaster) {
-            G4cout << "=== Parameter Update ===" << G4endl;
-            G4cout << "SiPIN max interface hits set to: " << g_sipin_max_interface_hits << G4endl;
-        }
+        G4cout << "=== Parameter Update ===" << G4endl;
+        G4cout << "SiPIN max interface hits set to: " << g_sipin_max_interface_hits << G4endl;
     }
     // Sanity wall override
     else if (command == fSanityWallModelCmd) {
         g_sanity_wall_model = fSanityWallModelCmd->GetNewIntValue(newValue);
-        if (isMaster) {
-            G4cout << "=== Parameter Update ===" << G4endl;
-            G4cout << "Sanity wall model set to: " << g_sanity_wall_model
-                   << " (0=off,1=specular,2=lambertian)" << G4endl;
-            G4cout << "NOTE: Takes effect immediately (stepping override), no geometry rebuild needed." << G4endl;
-        }
+        G4cout << "=== Parameter Update ===" << G4endl;
+        G4cout << "Sanity wall model set to: " << g_sanity_wall_model
+               << " (0=off,1=specular,2=lambertian)" << G4endl;
+        G4cout << "NOTE: Takes effect immediately (stepping override), no geometry rebuild needed." << G4endl;
     }
     else if (command == fSanityWallReflectivityCmd) {
         g_sanity_wall_reflectivity = fSanityWallReflectivityCmd->GetNewDoubleValue(newValue);
-        if (isMaster) {
-            G4cout << "=== Parameter Update ===" << G4endl;
-            G4cout << "Sanity wall reflectivity R set to: " << g_sanity_wall_reflectivity << G4endl;
-        }
+        G4cout << "=== Parameter Update ===" << G4endl;
+        G4cout << "Sanity wall reflectivity R set to: " << g_sanity_wall_reflectivity << G4endl;
     }
     else if (command == fSanityWallApplySideCmd) {
         g_sanity_wall_apply_side = fSanityWallApplySideCmd->GetNewBoolValue(newValue);
-        if (isMaster) {
-            G4cout << "=== Parameter Update ===" << G4endl;
-            G4cout << "Sanity wall apply side: " << (g_sanity_wall_apply_side ? "true" : "false") << G4endl;
-        }
+        G4cout << "=== Parameter Update ===" << G4endl;
+        G4cout << "Sanity wall apply side: " << (g_sanity_wall_apply_side ? "true" : "false") << G4endl;
     }
     else if (command == fSanityWallApplyTopCmd) {
         g_sanity_wall_apply_top = fSanityWallApplyTopCmd->GetNewBoolValue(newValue);
-        if (isMaster) {
-            G4cout << "=== Parameter Update ===" << G4endl;
-            G4cout << "Sanity wall apply top: " << (g_sanity_wall_apply_top ? "true" : "false") << G4endl;
-        }
-    }
-    else if (command == fSanityMaxStepsCmd) {
-        g_sanity_max_steps = fSanityMaxStepsCmd->GetNewIntValue(newValue);
-        if (isMaster) {
-            G4cout << "=== Parameter Update ===" << G4endl;
-            G4cout << "Sanity max steps per optical photon: " << g_sanity_max_steps << G4endl;
-        }
-    }
-    else if (command == fSanityFastSpecularTirCmd) {
-        g_sanity_fast_specular_tir = fSanityFastSpecularTirCmd->GetNewBoolValue(newValue);
-        if (isMaster) {
-            G4cout << "=== Parameter Update ===" << G4endl;
-            G4cout << "Sanity fastSpecularTIR: " << (g_sanity_fast_specular_tir ? "true" : "false") << G4endl;
-        }
+        G4cout << "=== Parameter Update ===" << G4endl;
+        G4cout << "Sanity wall apply top: " << (g_sanity_wall_apply_top ? "true" : "false") << G4endl;
     }
 }
 

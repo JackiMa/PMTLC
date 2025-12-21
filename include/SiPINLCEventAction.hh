@@ -90,9 +90,6 @@ class SiPINLCEventAction : public G4UserEventAction
   G4double fThetaSumDeg = 0.0;    // 本事件所有“撞击SiPIN界面”的入射角求和（deg）
   G4int fThetaCount = 0;          // 本事件入射角样本数（=撞击次数）
 
-  // === analytic sanity-check: wall interaction count (side/top only, from stepping override) ===
-  G4int fWallHitCount = 0;
-
 };
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 #endif

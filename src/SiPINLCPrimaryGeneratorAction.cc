@@ -112,10 +112,7 @@ void SiPINLCPrimaryGeneratorAction::GeneratePrimaries(G4Event* anEvent)
     
     G4ParticleDefinition* optPhoton = G4ParticleTable::GetParticleTable()->FindParticle("opticalphoton");
     fParticleGun->SetParticleDefinition(optPhoton);
-    // Monochromatic optical photon for analytic sanity checks (550 nm by default)
-    // E[eV] = 1239.841939 (eV*nm) / λ[nm]
-    const G4double energy = (1239.841939 * eV * nm) / g_debug_opticalphoton_wavelength;
-    fParticleGun->SetParticleEnergy(energy);
+    fParticleGun->SetParticleEnergy(2.0*eV);  // ~620 nm，吸收长度约360mm，用于验证自吸收
     fParticleGun->SetParticlePosition(crystalPos);
     
     // *** 各向同性发射（球面均匀）***

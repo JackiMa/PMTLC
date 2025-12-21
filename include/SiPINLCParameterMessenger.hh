@@ -62,8 +62,6 @@ private:
     G4UIcmdWithADouble*   fSanityWallReflectivityCmd; // 0..1
     G4UIcmdWithABool*     fSanityWallApplySideCmd;    // apply to side faces
     G4UIcmdWithABool*     fSanityWallApplyTopCmd;     // apply to top face
-    G4UIcmdWithAnInteger* fSanityMaxStepsCmd;         // max steps per optical photon (sanity runs)
-    G4UIcmdWithABool*     fSanityFastSpecularTirCmd;  // fast TIR short-circuit for specular sanity
 };
 
 #endif

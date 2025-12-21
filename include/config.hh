@@ -36,11 +36,6 @@ inline G4int g_sanity_wall_model = SANITY_WALL_OFF;
 inline G4double g_sanity_wall_reflectivity = 1.0; // 0..1 (used when wall_model != OFF)
 inline G4bool g_sanity_wall_apply_side = true;
 inline G4bool g_sanity_wall_apply_top = true;
-// Safety cap for analytic sanity runs: maximum number of steps per optical photon track.
-// Prevents pathological long runs for "specular + TIR-trapped" configurations.
-inline G4int g_sanity_max_steps = 20000;
-// For scenario A (specular mirror), optionally short-circuit TIR-trapped photons at step 1 (fast).
-inline G4bool g_sanity_fast_specular_tir = false;
 
 // surface properties
 inline G4OpticalSurface *surf_ESR = MyMaterials::surf_ESR();
@@ -61,10 +56,6 @@ inline G4bool g_has_cherenkov = false;       // 是否考虑切伦科夫光
 // 设为 false 时，恢复正常的 gamma/electron 源逻辑。
 inline G4bool g_debug_opticalphoton = true;  // ← 调试模式：发射单色光子
 
-// 调试光子波长（用于解析 sanity-check / 单色对照）
-// 550 nm 对应 2.254 eV（E = 1240 eV·nm / λ）
-inline G4double g_debug_opticalphoton_wavelength = 550.0 * nm;
-
 // ========== 基准源参数 ==========
 // 正常模式下（g_debug_opticalphoton=false）使用的粒子类型和能量
 // 按你的要求：GAGG 中心 662 keV 电子激发闪烁谱
@@ -82,12 +73,6 @@ inline G4double g_side_contact_ratio = 0.0;
 // 晶体表面微粗糙（UNIFIED sigma_alpha, 单位 rad）
 // 0 表示理想镜面界面（Fresnel + 完全平整）；>0 表示微表面法线分布展宽（角度扩散），可打破“困光/导波”。
 inline G4double g_crystal_sigma_alpha = 0.0;  // rad
-
-// 晶体自吸收强度：通过缩放 ABSLENGTH 来实现（>1 表示吸收长度变长，自吸收更弱）
-// 注意：MyMaterials::GAGG_Ce_Mg(scaleFactor) 本身也支持这个含义；这里用于运行时通过 UI 调整。
-inline G4double g_crystal_absorption_scale = 1.0;
-// 用于避免重复累乘的“当前已应用值”（由 DetectorConstruction 在构建几何时维护）
-inline G4double g_crystal_absorption_scale_applied = 1.0;
 
 // SiPIN 探测概率模型（用于 grease(or airgap) → Si 界面）
 // p_det = 1 - R(λ,θ) 由你拟合 Si3N4 厚度的 TMM + 厂商 QE 得到

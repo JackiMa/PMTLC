@@ -97,8 +97,6 @@ void SiPINLCEventAction::BeginOfEventAction(const G4Event *)
   fEscapeOther = 0;
   fThetaSumDeg = 0.0;
   fThetaCount = 0;
-  fWallHitCount = 0;
-  processedTrackIDs.clear();
   photonHitCount.clear();
   photonPathInCrystal.clear();
 }
@@ -106,9 +104,7 @@ void SiPINLCEventAction::BeginOfEventAction(const G4Event *)
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 void SiPINLCEventAction::EndOfEventAction(const G4Event *event)
 {
-  // For analytic sanity-check runs, skip ROOT histogram filling (MT stability),
-  // but still accumulate run-level counters for run_data.csv.
-  auto analysisManager = (g_sanity_wall_model == SANITY_WALL_OFF) ? G4AnalysisManager::Instance() : nullptr;
+  auto analysisManager = G4AnalysisManager::Instance();
 
   // 统计放射源的能谱
   // G4PrimaryVertex* primaryVertex = event->GetPrimaryVertex();
@@ -120,42 +116,31 @@ void SiPINLCEventAction::EndOfEventAction(const G4Event *event)
   //     }
   // }
 
-  if (analysisManager)
-  {
-    fEdepInCrystal = G4SDManager::GetSDMpointer()->GetCollectionID(gN_sc_crystal+"/Edep");
-    auto EdepInCrystal = GetSum(GetHitsCollection(fEdepInCrystal, event));
-    analysisManager->FillH1(gID_H1_sc_ed, EdepInCrystal);
-    analysisManager->FillH1(gID_H1_sipin_LC, fLightCollection);
-  }
+  fEdepInCrystal = G4SDManager::GetSDMpointer()->GetCollectionID(gN_sc_crystal+"/Edep");
+  auto EdepInCrystal = GetSum(GetHitsCollection(fEdepInCrystal, event));
+  analysisManager->FillH1(gID_H1_sc_ed, EdepInCrystal);
+  analysisManager->FillH1(gID_H1_sipin_LC, fLightCollection);
   
   // === 论文所需：填充撞击次数分布直方图 ===
-  if (analysisManager) {
-    for (const auto& pair : photonHitCount) {
-      analysisManager->FillH1(gID_H1_sipin_hitCount, pair.second);
-    }
+  for (const auto& pair : photonHitCount) {
+    analysisManager->FillH1(gID_H1_sipin_hitCount, pair.second);
   }
   
   // === 论文所需：填充光子在晶体内路程分布直方图 ===
-  if (analysisManager) {
-    for (const auto& pair : photonPathInCrystal) {
-      analysisManager->FillH1(gID_H1_photon_pathlength, pair.second / mm);  // 转换为mm
-    }
+  for (const auto& pair : photonPathInCrystal) {
+    analysisManager->FillH1(gID_H1_photon_pathlength, pair.second / mm);  // 转换为mm
   }
   
   // === 论文所需：填充逃逸通道统计直方图 ===
   // 通道编码: 0=被晶体吸收, 1=从顶面逃逸, 2=从侧面逃逸, 3=被PTFE吸收, 4=其他
-  if (analysisManager) {
-    if (fEscapeAbsorbed > 0) analysisManager->FillH1(gID_H1_escape_channel, 0, fEscapeAbsorbed);
-    if (fEscapeTopAir > 0) analysisManager->FillH1(gID_H1_escape_channel, 1, fEscapeTopAir);
-    if (fEscapeSideAir > 0) analysisManager->FillH1(gID_H1_escape_channel, 2, fEscapeSideAir);
-    if (fEscapePTFE > 0) analysisManager->FillH1(gID_H1_escape_channel, 3, fEscapePTFE);
-    if (fEscapeOther > 0) analysisManager->FillH1(gID_H1_escape_channel, 4, fEscapeOther);
-  }
+  if (fEscapeAbsorbed > 0) analysisManager->FillH1(gID_H1_escape_channel, 0, fEscapeAbsorbed);
+  if (fEscapeTopAir > 0) analysisManager->FillH1(gID_H1_escape_channel, 1, fEscapeTopAir);
+  if (fEscapeSideAir > 0) analysisManager->FillH1(gID_H1_escape_channel, 2, fEscapeSideAir);
+  if (fEscapePTFE > 0) analysisManager->FillH1(gID_H1_escape_channel, 3, fEscapePTFE);
+  if (fEscapeOther > 0) analysisManager->FillH1(gID_H1_escape_channel, 4, fEscapeOther);
   
   // === 论文所需：填充每事件产生的光子数 ===
-  if (analysisManager) {
-    analysisManager->FillH1(gID_H1_photon_generated, fPhotonGenerated);
-  }
+  analysisManager->FillH1(gID_H1_photon_generated, fPhotonGenerated);
 
   // === Run 级别统计（用于 MT 下可靠输出 run_data.csv）===
   // - 事件数：每事件 +1
@@ -167,56 +152,6 @@ void SiPINLCEventAction::EndOfEventAction(const G4Event *event)
   for (const auto& kv : photonHitCount) {
     hitCountSum += kv.second;
     hitCountN += 1;
-  }
-
-  // === analytic_check2 Gate-1: 统计闭合兜底（仅对 debug opticalphoton 模式）===
-  // 在 g_debug_opticalphoton=true 时，每事件应恰好有 1 个光子终态：
-  // - hit Si (fLightCollection) 或
-  // - Escaped_* 之一
-  // 若因某些 kill 分支/异常路径导致本事件未被归类，则将其计入 Escaped_Other，
-  // 同时打印少量警告，便于后续定位真实根因。
-  if (g_debug_opticalphoton)
-  {
-    const G4int sum =
-        fLightCollection +
-        fEscapeAbsorbed +
-        fEscapeTopAir +
-        fEscapeSideAir +
-        fEscapePTFE +
-        fEscapeOther;
-
-    if (sum == 0)
-    {
-      fEscapeOther += 1;
-      static int warn = 0;
-      if (warn < 10)
-      {
-        warn++;
-        G4cerr << "[Gate-1][WARN] Event has no terminal classification; force +1 to Escaped_Other. "
-               << "eventID=" << event->GetEventID()
-               << " tid=" << G4Threading::G4GetThreadId()
-               << G4endl;
-      }
-    }
-    else if (sum != 1)
-    {
-      static int warn2 = 0;
-      if (warn2 < 10)
-      {
-        warn2++;
-        G4cerr << "[Gate-1][WARN] Event terminal classification sum != 1 in debug opticalphoton mode. "
-               << "eventID=" << event->GetEventID()
-               << " sum=" << sum
-               << " (hit=" << fLightCollection
-               << ", escCrystal=" << fEscapeAbsorbed
-               << ", escTop=" << fEscapeTopAir
-               << ", escSide=" << fEscapeSideAir
-               << ", escPTFE=" << fEscapePTFE
-               << ", escOther=" << fEscapeOther
-               << ") tid=" << G4Threading::G4GetThreadId()
-               << G4endl;
-      }
-    }
   }
 
   SiPINLCRunStats::Instance().AccumulateEventStats(
