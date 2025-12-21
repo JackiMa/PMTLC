@@ -43,6 +43,39 @@
 #include "config.hh"
 #include "SipinPDETable.hh"
 
+namespace {
+// Cosine-weighted (Lambertian) hemisphere sampling around a given axis (must be unit).
+// Returns a unit vector.
+G4ThreeVector SampleLambertianHemisphere(const G4ThreeVector& axisUnit)
+{
+    // r1 -> cos-weighted
+    const G4double r1 = G4UniformRand();
+    const G4double r2 = G4UniformRand();
+    const G4double cosTheta = std::sqrt(r1);
+    const G4double sinTheta = std::sqrt(1.0 - r1);
+    const G4double phi = 2.0 * CLHEP::pi * r2;
+
+    G4ThreeVector w = axisUnit.unit();
+    G4ThreeVector u = w.orthogonal().unit();
+    G4ThreeVector v = w.cross(u).unit();
+
+    G4ThreeVector dir = (sinTheta * std::cos(phi)) * u + (sinTheta * std::sin(phi)) * v + (cosTheta) * w;
+    return dir.unit();
+}
+
+// Extract reflectivity from an optical surface material properties table, if present.
+// If missing, returns fallback.
+G4double GetSurfaceReflectivity(const G4OpticalSurface* surf, G4double photonEnergy, G4double fallback = 1.0)
+{
+    if (!surf) return fallback;
+    auto* mpt = surf->GetMaterialPropertiesTable();
+    if (!mpt) return fallback;
+    auto* vec = mpt->GetProperty("REFLECTIVITY");
+    if (!vec) return fallback;
+    return vec->Value(photonEnergy);
+}
+} // namespace
+
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
 SiPINLCSteppingAction::SiPINLCSteppingAction(SiPINLCEventAction *event)
@@ -274,6 +307,85 @@ void SiPINLCSteppingAction::UserSteppingAction(const G4Step *step)
                     aTrack->SetPosition(backPos);
                     aTrack->SetMomentumDirection(reflDir.unit());
                     aTrack->SetTrackStatus(fAlive);
+                }
+            }
+        }
+
+        // === 侧面贴合比例（概率边界法）===
+        // 当光子尝试从晶体侧面进入 sc_gap 时：
+        // - 以概率 p = g_side_contact_ratio，将该次交互视为“晶体-PTFE直接贴合”：
+        //     * 用 PTFE 表面反射率做吸收/反射判决（反射使用 Lambertian 近似）
+        //     * 反射则把光子推回晶体内部并改变方向
+        // - 以概率 1-p，保持原 Geant4 的“晶体-空气”边界（Fresnel/TIR）行为
+        //
+        // 说明：这是统计等效的“面片随机化”，用于避免复杂几何分片。
+        if (g_side_contact_ratio > 0.0)
+        {
+            const G4bool isBoundary = (postStepPoint->GetStepStatus() == fGeomBoundary);
+            const G4bool crystalToGap = isBoundary && (preVolumeName == gN_sc_crystal) && (postVolumeName == "sc_gap");
+
+            if (crystalToGap)
+            {
+                // Identify whether this boundary point is on a side face (not top/bottom).
+                // We use local position in the CRYSTAL logical volume; crystal is axis-aligned.
+                const auto touch = preStepPoint->GetTouchableHandle();
+                const G4ThreeVector local = touch->GetHistory()->GetTopTransform().TransformPoint(preStepPoint->GetPosition());
+
+                const G4double hx = 0.5 * g_crystalX;
+                const G4double hy = 0.5 * g_crystalY;
+                const G4double hz = 0.5 * g_crystalZ;
+                const G4double tol = std::max(10.0 * G4GeometryTolerance::GetInstance()->GetSurfaceTolerance(), 0.1 * um);
+
+                const G4bool onSideX = (std::abs(std::abs(local.x()) - hx) < tol);
+                const G4bool onSideY = (std::abs(std::abs(local.y()) - hy) < tol);
+                const G4bool onTopOrBottom = (std::abs(std::abs(local.z()) - hz) < tol);
+                const G4bool isSide = (onSideX || onSideY) && !onTopOrBottom;
+
+                if (isSide && (G4UniformRand() < g_side_contact_ratio))
+                {
+                    // Determine outward normal from crystal into gap.
+                    G4ThreeVector n(0, 0, 0);
+                    if (onSideX)
+                        n = G4ThreeVector((local.x() > 0) ? 1.0 : -1.0, 0, 0);
+                    else if (onSideY)
+                        n = G4ThreeVector(0, (local.y() > 0) ? 1.0 : -1.0, 0);
+                    else
+                        n = G4ThreeVector(0, 0, 0);
+
+                    if (n.mag2() > 0.0)
+                    {
+                        // Use wrapper PTFE surface reflectivity curve (currently surf_Hreflex from config.hh).
+                        const G4double energy = aTrack->GetTotalEnergy();
+                        G4double R = GetSurfaceReflectivity(surf_Hreflex, energy, 1.0);
+                        if (R < 0.0) R = 0.0;
+                        if (R > 1.0) R = 1.0;
+
+                        if (G4UniformRand() < R)
+                        {
+                            // IMPORTANT (Navigator stability):
+                            // Do NOT "teleport back" into the crystal after the step has already crossed the boundary.
+                            // That causes GeomNav1002 floods and can stall.
+                            // Instead, keep the photon on the POST side (sc_gap) and set its direction
+                            // so that it will re-enter the crystal on the next step (statistical reflection).
+                            const G4ThreeVector newDir = SampleLambertianHemisphere((-n).unit()); // points into crystal
+
+                            const G4double st = G4GeometryTolerance::GetInstance()->GetSurfaceTolerance();
+                            const G4double push = std::max(100.0 * st, 1.0 * um);
+                            const G4ThreeVector postPos = postStepPoint->GetPosition();
+                            const G4ThreeVector safePosInGap = postPos + push * n.unit(); // ensure we're inside sc_gap
+                            aTrack->SetPosition(safePosInGap);
+                            aTrack->SetMomentumDirection(newDir);
+                            aTrack->SetTrackStatus(fAlive);
+                            return;
+                        }
+                        else
+                        {
+                            // Absorbed by PTFE contact patch (statistical equivalent)
+                            fEventAction->fEscapePTFE++;
+                            aTrack->SetTrackStatus(fStopAndKill);
+                            return;
+                        }
+                    }
                 }
             }
         }

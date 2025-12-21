@@ -81,6 +81,16 @@ SiPINLCParameterMessenger::SiPINLCParameterMessenger()
     fSideContactCmd->SetParameterName("contact", false);
     fSideContactCmd->AvailableForStates(G4State_PreInit, G4State_Idle);
 
+    // Side contact ratio (probabilistic boundary method)
+    // This does NOT change geometry; it changes side-boundary handling in stepping.
+    fSideContactRatioCmd = new G4UIcmdWithADouble("/SiPINLC/geometry/sideContactRatio", this);
+    fSideContactRatioCmd->SetGuidance("Set side contact ratio p in [0,1] for probabilistic boundary method.");
+    fSideContactRatioCmd->SetGuidance("When an optical photon hits a CRYSTAL SIDE surface: with probability p treat it as 'crystal-PTFE contact';");
+    fSideContactRatioCmd->SetGuidance("with probability 1-p treat it as 'crystal-air gap' (default Fresnel/TIR).");
+    fSideContactRatioCmd->SetParameterName("p", false);
+    fSideContactRatioCmd->SetRange("p>=0. && p<=1.");
+    fSideContactRatioCmd->AvailableForStates(G4State_PreInit, G4State_Idle);
+
     // === Material Commands ===
     
     // Absorption scale factor
@@ -142,6 +152,7 @@ SiPINLCParameterMessenger::~SiPINLCParameterMessenger()
     delete fTopAirGapCmd;
     delete fSideGapCmd;
     delete fSideContactCmd;
+    delete fSideContactRatioCmd;
     delete fAbsorptionScaleCmd;
     delete fEffectiveAbsLengthCmd;
     delete fPTFEReflectivityCmd;
@@ -192,6 +203,12 @@ void SiPINLCParameterMessenger::SetNewValue(G4UIcommand* command, G4String newVa
             G4cout << "=== Parameter Update ===" << G4endl;
             G4cout << "Side contact mode: AIR GAP (gap=" << g_gap_thickness/um << " um)" << G4endl;
         }
+    }
+    else if (command == fSideContactRatioCmd) {
+        g_side_contact_ratio = fSideContactRatioCmd->GetNewDoubleValue(newValue);
+        G4cout << "=== Parameter Update ===" << G4endl;
+        G4cout << "Side contact ratio (probabilistic): " << g_side_contact_ratio << G4endl;
+        G4cout << "NOTE: Takes effect immediately (stepping logic), no geometry rebuild needed." << G4endl;
     }
     // Material parameters
     else if (command == fAbsorptionScaleCmd) {

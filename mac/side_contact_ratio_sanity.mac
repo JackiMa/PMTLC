@@ -1,0 +1,26 @@
+# Sanity macro: probabilistic side-contact ratio (per-side-hit mixture)
+# Requires: g_debug_opticalphoton=true (isotropic optical photons from crystal center)
+#
+# We run 3 cases in separate processes (recommended) OR you can run one-by-one by editing.
+# Here we keep a single run per invocation; caller should set sideContactRatio before /run/initialize.
+
+/control/verbose 0
+/run/verbose 0
+/tracking/verbose 0
+/process/optical/verbose 0
+
+/SiPINLC/sipin/pdetMode 0
+
+# geometry baseline (no grease)
+/SiPINLC/geometry/greaseThickness 0.0 mm
+/SiPINLC/geometry/bottomAirGap 10 um
+/SiPINLC/geometry/topAirGap 0.10 mm
+/SiPINLC/geometry/sideGap 0.10 mm
+
+# set p in [0,1]
+/SiPINLC/geometry/sideContactRatio 0.5
+
+/run/initialize
+/run/beamOn 10000
+
+
