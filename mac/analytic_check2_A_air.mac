@@ -1,0 +1,16 @@
+# Scenario A-Air: 镜面反射（TIR）+ Air 耦合
+# 理论: ε_col = 1 - sqrt(1 - (1.0/1.86)^2) = 0.157
+/control/verbose 0
+/run/verbose 0
+/tracking/verbose 0
+/SiPINLC/sipin/pdetMode 0
+/SiPINLC/geometry/greaseThickness 0.0 mm
+/SiPINLC/geometry/bottomAirGap 10 um
+/SiPINLC/geometry/topAirGap 0.10 mm
+/SiPINLC/geometry/sideGap 0.10 mm
+/SiPINLC/geometry/sideContactRatio 0.0
+/SiPINLC/geometry/topContactRatio 0.0
+/SiPINLC/geometry/crystalSigmaAlpha 0.0 rad
+/SiPINLC/sanity/wallModel 0
+/run/initialize
+/run/beamOn 1000

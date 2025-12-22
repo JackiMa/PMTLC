@@ -96,15 +96,27 @@ SiPINLCParameterMessenger::SiPINLCParameterMessenger()
     fSideContactCmd->SetParameterName("contact", false);
     fSideContactCmd->AvailableForStates(G4State_PreInit, G4State_Idle);
 
-    // Side contact ratio (probabilistic boundary method)
-    // This does NOT change geometry; it changes side-boundary handling in stepping.
+    // Side contact ratio (controls PTFE contact surface)
+    // 0: no contact (use air gap + TIR)
+    // 1: full contact with PTFE (R=97.5%)
+    // >1: full contact with ideal PTFE (R=100%, for sanity-check)
     fSideContactRatioCmd = new G4UIcmdWithADouble("/SiPINLC/geometry/sideContactRatio", this);
-    fSideContactRatioCmd->SetGuidance("Set side contact ratio p in [0,1] for probabilistic boundary method.");
-    fSideContactRatioCmd->SetGuidance("When an optical photon hits a CRYSTAL SIDE surface: with probability p treat it as 'crystal-PTFE contact';");
-    fSideContactRatioCmd->SetGuidance("with probability 1-p treat it as 'crystal-air gap' (default Fresnel/TIR).");
+    fSideContactRatioCmd->SetGuidance("Set side contact ratio: 0=air gap, 1=PTFE(R=97.5%), >1=ideal(R=100%)");
+    fSideContactRatioCmd->SetGuidance("0: crystal-air interface with TIR physics");
+    fSideContactRatioCmd->SetGuidance("1: crystal-PTFE interface with R=97.5% (realistic)");
+    fSideContactRatioCmd->SetGuidance(">1 (e.g. 2): crystal-PTFE interface with R=100% (sanity-check)");
     fSideContactRatioCmd->SetParameterName("p", false);
-    fSideContactRatioCmd->SetRange("p>=0. && p<=1.");
+    fSideContactRatioCmd->SetRange("p>=0.");
     fSideContactRatioCmd->AvailableForStates(G4State_PreInit, G4State_Idle);
+
+    // Top contact ratio (controls PTFE contact surface on top face)
+    // Same as sideContactRatio but for top face (+z)
+    fTopContactRatioCmd = new G4UIcmdWithADouble("/SiPINLC/geometry/topContactRatio", this);
+    fTopContactRatioCmd->SetGuidance("Set top contact ratio: 0=air gap, 1=PTFE(R=97.5%), >1=ideal(R=100%)");
+    fTopContactRatioCmd->SetGuidance("Same as sideContactRatio but for top face (+z)");
+    fTopContactRatioCmd->SetParameterName("p", false);
+    fTopContactRatioCmd->SetRange("p>=0.");
+    fTopContactRatioCmd->AvailableForStates(G4State_PreInit, G4State_Idle);
 
     // === Material Commands ===
     
@@ -193,6 +205,7 @@ SiPINLCParameterMessenger::~SiPINLCParameterMessenger()
     delete fCrystalSigmaAlphaCmd;
     delete fSideContactCmd;
     delete fSideContactRatioCmd;
+    delete fTopContactRatioCmd;
     delete fAbsorptionScaleCmd;
     delete fEffectiveAbsLengthCmd;
     delete fPTFEReflectivityCmd;
@@ -261,6 +274,12 @@ void SiPINLCParameterMessenger::SetNewValue(G4UIcommand* command, G4String newVa
         G4cout << "Side contact ratio (probabilistic): " << g_side_contact_ratio << G4endl;
         G4cout << "NOTE: Takes effect immediately (stepping logic), no geometry rebuild needed." << G4endl;
     }
+    else if (command == fTopContactRatioCmd) {
+        g_top_contact_ratio = fTopContactRatioCmd->GetNewDoubleValue(newValue);
+        G4cout << "=== Parameter Update ===" << G4endl;
+        G4cout << "Top contact ratio (probabilistic): " << g_top_contact_ratio << G4endl;
+        G4cout << "NOTE: Takes effect immediately (stepping logic), no geometry rebuild needed." << G4endl;
+    }
     // Material parameters
     else if (command == fAbsorptionScaleCmd) {
         // 这个需要在材料重建时使用
@@ -279,7 +298,12 @@ void SiPINLCParameterMessenger::SetNewValue(G4UIcommand* command, G4String newVa
         G4double refl = fPTFEReflectivityCmd->GetNewDoubleValue(newValue);
         G4cout << "=== Parameter Update ===" << G4endl;
         G4cout << "PTFE reflectivity: " << refl*100 << "%" << G4endl;
-        G4cout << "NOTE: Requires geometry rebuild (/run/reinitializeGeometry)" << G4endl;
+        // Update the global PTFE surface used by stepping overrides immediately.
+        // MyMaterials::surf_Teflon argument is transmittance, so trans = 1 - R.
+        const G4double trans = (refl >= 1.0) ? 0.0 : ((refl <= 0.0) ? 1.0 : (1.0 - refl));
+        surf_Hreflex = MyMaterials::surf_Teflon(trans);
+        G4cout << "NOTE: Updated surf_Hreflex immediately for stepping overrides. "
+               << "Wrapper skin surface still requires geometry rebuild to fully update boundary surfaces." << G4endl;
     }
     // SiPIN P_det model
     else if (command == fSipinPdetModeCmd) {

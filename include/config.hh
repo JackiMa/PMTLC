@@ -69,6 +69,8 @@ inline G4double g_bottom_airgap_thickness = 10*um;  // 默认 10um，可调
 inline G4double g_top_airgap_thickness = 0.1*mm;  // 顶面空气层厚度 (论文基准值100μm)
 // 侧面贴合比例 0~1, 用于概率边界法（建议默认关闭；做贴合实验时在 mac 中显式打开）
 inline G4double g_side_contact_ratio = 0.0;
+// 顶面贴合比例 0~1, 用于概率边界法（只在晶体顶面 +z 与 sc_gap 边界生效）
+inline G4double g_top_contact_ratio = 0.0;
 
 // 晶体表面微粗糙（UNIFIED sigma_alpha, 单位 rad）
 // 0 表示理想镜面界面（Fresnel + 完全平整）；>0 表示微表面法线分布展宽（角度扩散），可打破“困光/导波”。
@@ -131,7 +133,7 @@ inline G4double g_crystalZ = 0.5 * cm;
 inline G4Material *g_wrapper_material = MyMaterials::PVC(); 
 // inline G4Material *g_crystal_material = MyMaterials::PVC(); 
 // inline G4Material *g_crystal_material = MyMaterials::LuAG_Ce(); 
-inline G4Material *g_crystal_material = MyMaterials::GAGG_Ce_Mg(20000, 1, -1);  // 恢复正常吸收长度 
+inline G4Material *g_crystal_material = MyMaterials::GAGG_Ce_Mg(20000, 1, -1);  // scaleFactor=1 原始吸收长度 
 // inline G4Material *g_crystal_material = MyMaterials::LYSO(35000, 1, -1); 
 // inline G4Material *g_crystal_material = MyMaterials::BGO(8000, 1, -1); 
 // inline G4Material *g_crystal_material = MyMaterials::CsI_Tl(30000, 1, -1); 

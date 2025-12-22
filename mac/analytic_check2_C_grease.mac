@@ -1,0 +1,17 @@
+# Scenario C-Grease: PTFE R=97.5% + Grease 耦合
+# 理论: ε_col = p*s / (p*s + (1-p)*(1-R)) ≈ 0.832
+/control/verbose 0
+/run/verbose 0
+/tracking/verbose 0
+/SiPINLC/sipin/pdetMode 0
+/SiPINLC/geometry/greaseThickness 0.1 mm
+/SiPINLC/geometry/bottomAirGap 0 um
+/SiPINLC/geometry/topAirGap 0.10 mm
+/SiPINLC/geometry/sideGap 0.10 mm
+# sideContactRatio = 1 表示真实 PTFE R=97.5%
+/SiPINLC/geometry/sideContactRatio 1.0
+/SiPINLC/geometry/topContactRatio 1.0
+/SiPINLC/geometry/crystalSigmaAlpha 0.0 rad
+/SiPINLC/sanity/wallModel 0
+/run/initialize
+/run/beamOn 1000

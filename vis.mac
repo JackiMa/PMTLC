@@ -86,4 +86,4 @@
 
 # other control commands:
 # set the PrimaryGeneratorAction to use the particle gun
-/SiPINLC/generator/useParticleGun true
+/SiPINLC/gun/useParticleGun true

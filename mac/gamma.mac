@@ -6,7 +6,7 @@
 #
 
 /run/initialize
-/SiPINLC/generator/useParticleGun true
+/SiPINLC/gun/useParticleGun true
 
 # 设置初级粒子为伽马射线
 /gun/particle gamma

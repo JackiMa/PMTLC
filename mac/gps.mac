@@ -6,7 +6,7 @@
 /run/initialize
 
 # 设置粒子发射器为GPS
-/SiPINLC/generator/useParticleGun false
+/SiPINLC/gun/useParticleGun false
 
 # 设置第一个粒子发射器：质子
 # /gps/source/add 1

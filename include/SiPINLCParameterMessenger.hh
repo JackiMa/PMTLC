@@ -45,6 +45,7 @@ private:
     G4UIcmdWithADoubleAndUnit* fCrystalSigmaAlphaCmd; // UNIFIED sigma_alpha (rad)
     G4UIcmdWithABool* fSideContactCmd;  // true=贴合, false=有空气层
     G4UIcmdWithADouble* fSideContactRatioCmd; // 0~1 概率边界法（贴合比例）
+    G4UIcmdWithADouble* fTopContactRatioCmd;  // 0~1 概率边界法（顶面贴合比例）
     
     // Material commands
     G4UIcmdWithADouble* fAbsorptionScaleCmd;  // 晶体吸收长度缩放系数

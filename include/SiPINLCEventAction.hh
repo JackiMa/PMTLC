@@ -87,8 +87,11 @@ class SiPINLCEventAction : public G4UserEventAction
   G4int fEscapeOther = 0;         // 其他损失通道
 
   // === 论文所需：用于 run 级别均值统计（避免 MT 下读取直方图未合并）===
-  G4double fThetaSumDeg = 0.0;    // 本事件所有“撞击SiPIN界面”的入射角求和（deg）
+  G4double fThetaSumDeg = 0.0;    // 本事件所有"撞击SiPIN界面"的入射角求和（deg）
   G4int fThetaCount = 0;          // 本事件入射角样本数（=撞击次数）
+
+  // === Sanity wall override: wall hit counter ===
+  G4int fWallHitCount = 0;        // Number of side/top wall interactions (for diagnostics)
 
 };
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......

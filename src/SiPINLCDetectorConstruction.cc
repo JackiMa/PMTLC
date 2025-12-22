@@ -228,6 +228,7 @@ G4VPhysicalVolume *SiPINLCDetectorConstruction::Construct()
     l_gap->SetVisAttributes(gapVisAtt);
 
     // --- optional grease slab inside sc_gap (bottom only)
+    MyPhysicalVolume* p_bottom_gap = nullptr;  // for bottom air gap (no grease case)
     if (grease_effective > 0.0)
     {
       name = "optical_grease";
@@ -242,6 +243,23 @@ G4VPhysicalVolume *SiPINLCDetectorConstruction::Construct()
       greaseVisAtt->SetForceSolid(true);
       greaseVisAtt->SetVisibility(true);
       l_grease->SetVisAttributes(greaseVisAtt);
+    }
+    else
+    {
+      // --- Create a dedicated bottom air gap volume (sc_bottom_gap) ---
+      // This separates the crystal bottom face from sc_gap so we can apply PTFE 
+      // BorderSurface only to crystal<->sc_gap (side/top) without affecting bottom.
+      name = "sc_bottom_gap";
+      const G4ThreeVector bottom_gap_pos_in_gap(0, 0, -0.5 * gapZ + 0.5 * bottom_gap);
+      G4Box *s_bottom_gap = new G4Box(name, 0.5 * g_crystalX, 0.5 * g_crystalY, 0.5 * bottom_gap);
+      G4LogicalVolume *l_bottom_gap = new G4LogicalVolume(s_bottom_gap, g_world_material, name);
+      p_bottom_gap = new MyPhysicalVolume(0, bottom_gap_pos_in_gap, name, l_bottom_gap, p_gap, false, 0, checkOverlaps);
+      fVolumeMap[name] = p_bottom_gap;
+      
+      G4VisAttributes *bottomGapVisAtt = new G4VisAttributes(G4Colour(0.8, 0.8, 1.0, 0.3));
+      bottomGapVisAtt->SetForceSolid(true);
+      bottomGapVisAtt->SetVisibility(true);
+      l_bottom_gap->SetVisAttributes(bottomGapVisAtt);
     }
 
     // Crystal position inside sc_gap: above bottom layer (grease or thin air gap)
@@ -367,6 +385,55 @@ G4VPhysicalVolume *SiPINLCDetectorConstruction::Construct()
     else
     {
       G4cerr << "[Surface] WARNING: sc_gap not found; cannot apply crystal sigma_alpha surface." << G4endl;
+    }
+  }
+
+  // === PTFE contact surface (for sanity-check scenarios B/C) ===
+  // When sideContactRatio=1 and/or topContactRatio=1, we want the crystal side/top faces
+  // to behave as if directly contacting PTFE with ideal reflectivity.
+  // We achieve this by creating a LogicalBorderSurface between crystal and sc_gap.
+  // Note: The bottom face is separated by sc_bottom_gap (or grease), so it won't be affected.
+  //
+  // CRITICAL BUG FIX: Must use dielectric_metal, NOT dielectric_dielectric!
+  // With dielectric_dielectric, photons hitting the crystal-air interface undergo TIR
+  // (total internal reflection) FIRST, which is ideal specular reflection that BYPASSES
+  // all surface settings (REFLECTIVITY, SPECULARLOBECONSTANT, etc.).
+  // With dielectric_metal, photons can only reflect or absorb (no Fresnel/TIR physics),
+  // and "ground" finish produces true Lambertian diffuse reflection.
+  if (g_side_contact_ratio >= 1.0 || g_top_contact_ratio >= 1.0)
+  {
+    auto itGap = fVolumeMap.find("sc_gap");
+    if (itGap != fVolumeMap.end() && itGap->second)
+    {
+      auto* p_gap = itGap->second;
+      
+      // Create ideal PTFE surface with dielectric_metal for TRUE Lambertian
+      auto* surfIdealPTFE = new G4OpticalSurface("IdealPTFE_Contact");
+      surfIdealPTFE->SetType(dielectric_metal);  // KEY: NOT dielectric_dielectric!
+      surfIdealPTFE->SetModel(unified);
+      surfIdealPTFE->SetFinish(ground);  // ground = Lambertian for dielectric_metal
+      
+      // Set reflectivity based on contact ratio:
+      // - If contactRatio = 1.0: use real PTFE reflectivity (97.5%)
+      // - If contactRatio > 1.0: use ideal R=1 (for sanity-check only)
+      const G4double ptfeR = (g_side_contact_ratio > 1.0 || g_top_contact_ratio > 1.0) ? 1.0 : 0.975;
+      const G4int nEntries = 2;
+      G4double photonEnergy[nEntries] = {1.0*eV, 6.0*eV};
+      G4double reflectivity[nEntries] = {ptfeR, ptfeR};  // 97.5% or 100%
+      G4double efficiency[nEntries] = {0.0, 0.0};    // no detection
+      
+      G4MaterialPropertiesTable* mpt = new G4MaterialPropertiesTable();
+      mpt->AddProperty("REFLECTIVITY", photonEnergy, reflectivity, nEntries);
+      mpt->AddProperty("EFFICIENCY", photonEnergy, efficiency, nEntries);
+      surfIdealPTFE->SetMaterialPropertiesTable(mpt);
+
+      // Apply BorderSurface between crystal and sc_gap (affects side/top faces)
+      new G4LogicalBorderSurface("CrystalToGap_PTFE", p_crystal, p_gap, surfIdealPTFE);
+      new G4LogicalBorderSurface("GapToCrystal_PTFE", p_gap, p_crystal, surfIdealPTFE);
+
+      G4cout << "[Surface] PTFE contact (dielectric_metal, ground, R=" << ptfeR << ") applied on crystal <-> sc_gap." << G4endl;
+      G4cout << "[Surface] Using dielectric_metal to bypass TIR and enable true Lambertian diffuse." << G4endl;
+      G4cout << "[Surface] Bottom face isolated by sc_bottom_gap/grease, not affected." << G4endl;
     }
   }
 

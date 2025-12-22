@@ -1,0 +1,63 @@
+# ============================================================================
+# Grease Thickness Scan
+# 扫描范围: 0 - 200 um, 步长 20 um
+# 默认事件数: 1e6
+# ============================================================================
+
+/run/initialize
+
+# --- Grease thickness = 0 um ---
+/SiPINLC/geometry/greaseThickness 0.00 mm
+/run/reinitializeGeometry
+/run/beamOn 1000000
+
+# --- Grease thickness = 20 um ---
+/SiPINLC/geometry/greaseThickness 0.02 mm
+/run/reinitializeGeometry
+/run/beamOn 1000000
+
+# --- Grease thickness = 40 um ---
+/SiPINLC/geometry/greaseThickness 0.04 mm
+/run/reinitializeGeometry
+/run/beamOn 1000000
+
+# --- Grease thickness = 60 um ---
+/SiPINLC/geometry/greaseThickness 0.06 mm
+/run/reinitializeGeometry
+/run/beamOn 1000000
+
+# --- Grease thickness = 80 um ---
+/SiPINLC/geometry/greaseThickness 0.08 mm
+/run/reinitializeGeometry
+/run/beamOn 1000000
+
+# --- Grease thickness = 100 um (基准) ---
+/SiPINLC/geometry/greaseThickness 0.10 mm
+/run/reinitializeGeometry
+/run/beamOn 1000000
+
+# --- Grease thickness = 120 um ---
+/SiPINLC/geometry/greaseThickness 0.12 mm
+/run/reinitializeGeometry
+/run/beamOn 1000000
+
+# --- Grease thickness = 140 um ---
+/SiPINLC/geometry/greaseThickness 0.14 mm
+/run/reinitializeGeometry
+/run/beamOn 1000000
+
+# --- Grease thickness = 160 um ---
+/SiPINLC/geometry/greaseThickness 0.16 mm
+/run/reinitializeGeometry
+/run/beamOn 1000000
+
+# --- Grease thickness = 180 um ---
+/SiPINLC/geometry/greaseThickness 0.18 mm
+/run/reinitializeGeometry
+/run/beamOn 1000000
+
+# --- Grease thickness = 200 um ---
+/SiPINLC/geometry/greaseThickness 0.20 mm
+/run/reinitializeGeometry
+/run/beamOn 1000000
+

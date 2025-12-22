@@ -319,85 +319,37 @@ void SiPINLCSteppingAction::UserSteppingAction(const G4Step *step)
             }
         }
 
-        // === 侧面贴合比例（概率边界法）===
-        // 当光子尝试从晶体侧面进入 sc_gap 时：
-        // - 以概率 p = g_side_contact_ratio，将该次交互视为“晶体-PTFE直接贴合”：
-        //     * 用 PTFE 表面反射率做吸收/反射判决（反射使用 Lambertian 近似）
-        //     * 反射则把光子推回晶体内部并改变方向
-        // - 以概率 1-p，保持原 Geant4 的“晶体-空气”边界（Fresnel/TIR）行为
-        //
-        // 说明：这是统计等效的“面片随机化”，用于避免复杂几何分片。
-        if (g_side_contact_ratio > 0.0)
+        // === Sanity wall override (analytic-friendly scenarios) ===
+        // DISABLED: The stepping override with SetPosition() causes GeomNav1002 warnings.
+        // Instead, use sideContactRatio=1.0 + topContactRatio=1.0 which sets up
+        // G4LogicalBorderSurface in DetectorConstruction for proper optical boundary handling.
+        /*
+        if (g_sanity_wall_model != SANITY_WALL_OFF)
         {
-            const G4bool isBoundary = (postStepPoint->GetStepStatus() == fGeomBoundary);
-            const G4bool crystalToGap = isBoundary && (preVolumeName == gN_sc_crystal) && (postVolumeName == "sc_gap");
-
-            if (crystalToGap)
-            {
-                // Identify whether this boundary point is on a side face (not top/bottom).
-                // We use local position in the CRYSTAL logical volume; crystal is axis-aligned.
-                const auto touch = preStepPoint->GetTouchableHandle();
-                const G4ThreeVector local = touch->GetHistory()->GetTopTransform().TransformPoint(preStepPoint->GetPosition());
-
-                const G4double hx = 0.5 * g_crystalX;
-                const G4double hy = 0.5 * g_crystalY;
-                const G4double hz = 0.5 * g_crystalZ;
-                const G4double tol = std::max(10.0 * G4GeometryTolerance::GetInstance()->GetSurfaceTolerance(), 0.1 * um);
-
-                const G4bool onSideX = (std::abs(std::abs(local.x()) - hx) < tol);
-                const G4bool onSideY = (std::abs(std::abs(local.y()) - hy) < tol);
-                const G4bool onTopOrBottom = (std::abs(std::abs(local.z()) - hz) < tol);
-                const G4bool isSide = (onSideX || onSideY) && !onTopOrBottom;
-
-                if (isSide && (G4UniformRand() < g_side_contact_ratio))
-                {
-                    // Determine outward normal from crystal into gap.
-                    G4ThreeVector n(0, 0, 0);
-                    if (onSideX)
-                        n = G4ThreeVector((local.x() > 0) ? 1.0 : -1.0, 0, 0);
-                    else if (onSideY)
-                        n = G4ThreeVector(0, (local.y() > 0) ? 1.0 : -1.0, 0);
-                    else
-                        n = G4ThreeVector(0, 0, 0);
-
-                    if (n.mag2() > 0.0)
-                    {
-                        // Use wrapper PTFE surface reflectivity curve (currently surf_Hreflex from config.hh).
-                        const G4double energy = aTrack->GetTotalEnergy();
-                        G4double R = GetSurfaceReflectivity(surf_Hreflex, energy, 1.0);
-                        if (R < 0.0) R = 0.0;
-                        if (R > 1.0) R = 1.0;
-
-                        if (G4UniformRand() < R)
-                        {
-                            // IMPORTANT (Navigator stability):
-                            // Do NOT "teleport back" into the crystal after the step has already crossed the boundary.
-                            // That causes GeomNav1002 floods and can stall.
-                            // Instead, keep the photon on the POST side (sc_gap) and set its direction
-                            // so that it will re-enter the crystal on the next step (statistical reflection).
-                            const G4ThreeVector newDir = SampleLambertianHemisphere((-n).unit()); // points into crystal
-
-                            const G4double st = G4GeometryTolerance::GetInstance()->GetSurfaceTolerance();
-                            // Increase push to avoid GeomNav1002 floods when doing statistical reflections.
-                            const G4double push = std::max(1000.0 * st, 10.0 * um);
-                            const G4ThreeVector postPos = postStepPoint->GetPosition();
-                            const G4ThreeVector safePosInGap = postPos + push * n.unit(); // ensure we're inside sc_gap
-                            aTrack->SetPosition(safePosInGap);
-                            aTrack->SetMomentumDirection(newDir);
-                            aTrack->SetTrackStatus(fAlive);
-                            return;
-                        }
-                        else
-                        {
-                            // Absorbed by PTFE contact patch (statistical equivalent)
-                            fEventAction->fEscapePTFE++;
-                            aTrack->SetTrackStatus(fStopAndKill);
-                            return;
-                        }
-                    }
-                }
-            }
+            // ... disabled to avoid GeomNav1002 warnings ...
         }
+        */
+
+        // === 侧面贴合比例（概率边界法）===
+        // NOTE: When sideContactRatio >= 1.0 or topContactRatio >= 1.0, we use
+        // G4LogicalBorderSurface (set up in DetectorConstruction) to handle the
+        // PTFE reflection. This avoids modifying track position and GeomNav1002 warnings.
+        //
+        // This stepping override is only used for PARTIAL contact (0 < ratio < 1):
+        // - With probability p = ratio, treat as PTFE contact (reflection/absorption)
+        // - With probability 1-p, let Geant4 handle normal Fresnel/TIR
+        //
+        // DISABLED FOR NOW: The position modification causes GeomNav1002 floods.
+        // For partial contact scenarios, use sideContactRatio=1.0 (full PTFE) or 0.0 (no contact).
+        // TODO: Implement partial contact without position modification if needed.
+        /*
+        if (g_sanity_wall_model == SANITY_WALL_OFF && 
+            ((g_side_contact_ratio > 0.0 && g_side_contact_ratio < 1.0) || 
+             (g_top_contact_ratio > 0.0 && g_top_contact_ratio < 1.0)))
+        {
+            // ... partial contact logic disabled to avoid GeomNav1002 ...
+        }
+        */
         
         // === 论文所需：统计光子逃逸/损失通道 ===
         // 检测光子是否被终止（吸收、逃出世界等）

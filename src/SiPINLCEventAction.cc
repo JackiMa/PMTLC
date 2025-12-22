@@ -97,6 +97,7 @@ void SiPINLCEventAction::BeginOfEventAction(const G4Event *)
   fEscapeOther = 0;
   fThetaSumDeg = 0.0;
   fThetaCount = 0;
+  fWallHitCount = 0;
   photonHitCount.clear();
   photonPathInCrystal.clear();
 }
@@ -141,6 +142,11 @@ void SiPINLCEventAction::EndOfEventAction(const G4Event *event)
   
   // === 论文所需：填充每事件产生的光子数 ===
   analysisManager->FillH1(gID_H1_photon_generated, fPhotonGenerated);
+  
+  // === Sanity wall override: fill wall hit count histogram ===
+  if (fWallHitCount > 0) {
+    analysisManager->FillH1(gID_H1_wall_hitCount, fWallHitCount);
+  }
 
   // === Run 级别统计（用于 MT 下可靠输出 run_data.csv）===
   // - 事件数：每事件 +1
