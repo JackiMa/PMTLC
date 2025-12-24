@@ -1,3 +1,4 @@
 build/**
 scripts/Test_output/**
 *.root
+*.log

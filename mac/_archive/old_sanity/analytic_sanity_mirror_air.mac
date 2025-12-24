@@ -1,0 +1,35 @@
+# Analytic sanity check: "specular mirror walls" on crystal SIDE+TOP (R=1)
+# Bottom coupling: AIR (no grease), thin bottom air gap
+#
+# Prediction (closed-form, see docs/analytic_sanity_checks.md):
+#   epsilon_col = P(theta < theta_c) = 1 - sqrt(1 - (n2/n1)^2), with n2=1 (air), n1=n_crystal
+#
+/control/verbose 0
+/run/verbose 0
+/tracking/verbose 0
+/process/optical/verbose 0
+
+# Count "Photon Hit si" (geometry arrival) and kill at Si
+/SiPINLC/sipin/pdetMode 0
+
+# Bottom coupling: air
+/SiPINLC/geometry/greaseThickness 0.0 mm
+/SiPINLC/geometry/bottomAirGap 10 um
+
+# Keep gaps nonzero (doesn't matter; wall override forces reflection at crystal->sc_gap on side/top)
+/SiPINLC/geometry/topAirGap 0.10 mm
+/SiPINLC/geometry/sideGap 0.10 mm
+
+# Disable probabilistic side-contact logic (avoid mixing models)
+/SiPINLC/geometry/sideContactRatio 0.0
+
+# Sanity wall override: specular mirror on side+top, R=1
+/SiPINLC/sanity/wallModel 1
+/SiPINLC/sanity/wallReflectivity 1.0
+/SiPINLC/sanity/wallApplySide true
+/SiPINLC/sanity/wallApplyTop true
+
+/run/initialize
+/run/beamOn 200000
+
+

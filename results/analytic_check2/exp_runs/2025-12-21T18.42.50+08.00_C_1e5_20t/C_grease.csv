@@ -1,0 +1,2 @@
+runID,Scintillation Photon Count,Cherenkov Photon Count,Photon Hit si,lightCollectionEfficiency,Escaped_CrystalAbsorbed,Escaped_TopAir,Escaped_SideAir,Escaped_PTFE,Escaped_Other,Mean_IncidenceAngle_deg,Mean_HitCount,EventsProcessed,EventsRequested
+0,0,0,26966,0.26966,1881,0,0,59532,11621,24.2833,1,100000,100000

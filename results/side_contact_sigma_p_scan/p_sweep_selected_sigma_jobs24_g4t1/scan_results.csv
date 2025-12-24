@@ -1,0 +1,13 @@
+idx,group,sigma_rad,p,runID,Photon_Hit_si,lightCollectionEfficiency,Escaped_CrystalAbsorbed,Escaped_TopAir,Escaped_SideAir,Escaped_PTFE,Escaped_Other,Mean_IncidenceAngle_deg,Mean_HitCount,log,mac,status,error
+0,p_sweep_selected_sigma,0.0,0.0,0,4899.0,0.4899,4137.0,0.0,0.0,0.0,964.0,22.8694,1.0,logs/00_p_sweep_selected_sigma_sigma0_p0.log,mac/00_p_sweep_selected_sigma_sigma0_p0.mac,ok,
+1,p_sweep_selected_sigma,0.0,0.5,0,4836.0,0.4836,647.0,0.0,0.0,498.0,4019.0,22.0649,1.0,logs/01_p_sweep_selected_sigma_sigma0_p0.5.log,mac/01_p_sweep_selected_sigma_sigma0_p0.5.mac,ok,
+2,p_sweep_selected_sigma,0.0,1.0,0,4442.0,0.4442,407.0,0.0,0.0,861.0,4290.0,21.3521,1.0,logs/02_p_sweep_selected_sigma_sigma0_p1.log,mac/02_p_sweep_selected_sigma_sigma0_p1.mac,ok,
+3,p_sweep_selected_sigma,0.1,0.0,0,8577.0,0.8577,833.0,0.0,0.0,0.0,590.0,20.1802,1.0,logs/03_p_sweep_selected_sigma_sigma0.1_p0.log,mac/03_p_sweep_selected_sigma_sigma0.1_p0.mac,ok,
+4,p_sweep_selected_sigma,0.1,0.5,0,6220.0,0.622,538.0,0.0,0.0,434.0,2808.0,20.075,1.0,logs/04_p_sweep_selected_sigma_sigma0.1_p0.5.log,mac/04_p_sweep_selected_sigma_sigma0.1_p0.5.mac,ok,
+5,p_sweep_selected_sigma,0.1,1.0,0,5080.0,0.512097,398.0,0.0,0.0,871.0,3571.0,20.1881,1.0,logs/05_p_sweep_selected_sigma_sigma0.1_p1.log,mac/05_p_sweep_selected_sigma_sigma0.1_p1.mac,ok,
+6,p_sweep_selected_sigma,0.3,0.0,0,8748.0,0.8748,793.0,0.0,0.0,0.0,459.0,20.5749,1.0,logs/06_p_sweep_selected_sigma_sigma0.3_p0.log,mac/06_p_sweep_selected_sigma_sigma0.3_p0.mac,ok,
+7,p_sweep_selected_sigma,0.3,0.5,0,6356.0,0.6356,536.0,0.0,0.0,387.0,2721.0,20.511,1.0,logs/07_p_sweep_selected_sigma_sigma0.3_p0.5.log,mac/07_p_sweep_selected_sigma_sigma0.3_p0.5.mac,ok,
+8,p_sweep_selected_sigma,0.3,1.0,0,5161.0,0.5161,402.0,0.0,0.0,800.0,3637.0,20.6476,1.0,logs/08_p_sweep_selected_sigma_sigma0.3_p1.log,mac/08_p_sweep_selected_sigma_sigma0.3_p1.mac,ok,
+9,p_sweep_selected_sigma,1.0,0.0,0,8937.0,0.8937,708.0,0.0,0.0,0.0,355.0,21.1357,1.0,logs/09_p_sweep_selected_sigma_sigma1_p0.log,mac/09_p_sweep_selected_sigma_sigma1_p0.mac,ok,
+10,p_sweep_selected_sigma,1.0,0.5,0,6518.0,0.6518,491.0,0.0,0.0,374.0,2617.0,21.2085,1.0,logs/10_p_sweep_selected_sigma_sigma1_p0.5.log,mac/10_p_sweep_selected_sigma_sigma1_p0.5.mac,ok,
+11,p_sweep_selected_sigma,1.0,1.0,0,5365.0,0.5365,390.0,0.0,0.0,629.0,3616.0,21.4703,1.0,logs/11_p_sweep_selected_sigma_sigma1_p1.log,mac/11_p_sweep_selected_sigma_sigma1_p1.mac,ok,

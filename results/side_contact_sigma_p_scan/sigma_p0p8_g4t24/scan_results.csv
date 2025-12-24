@@ -1,0 +1,2 @@
+idx,group,sigma_rad,p,runID,Photon_Hit_si,lightCollectionEfficiency,Escaped_CrystalAbsorbed,Escaped_TopAir,Escaped_SideAir,Escaped_PTFE,Escaped_Other,Mean_IncidenceAngle_deg,Mean_HitCount,log,mac
+0,sigma_sweep_p0.8,0.0,0.8,0,4583.0,0.45991,467.0,0.0,0.0,631.0,4284.0,21.4183,1.0,logs/00_sigma_sweep_p0.8_sigma0_p0.8.log,mac/00_sigma_sweep_p0.8_sigma0_p0.8.mac

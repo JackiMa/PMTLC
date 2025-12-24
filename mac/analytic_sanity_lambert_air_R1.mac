@@ -1,0 +1,29 @@
+# Analytic sanity check: "lambertian diffuse reflector walls" on crystal SIDE+TOP (R=1)
+# Bottom coupling: AIR
+#
+# Prediction:
+#   With angle randomization and no absorption, every photon will eventually hit the bottom
+#   with theta < theta_c, thus epsilon_col -> 1 (up to finite max steps / numerical issues).
+#
+/control/verbose 0
+/run/verbose 0
+/tracking/verbose 0
+/process/optical/verbose 0
+
+/SiPINLC/sipin/pdetMode 0
+
+/SiPINLC/geometry/greaseThickness 0.0 mm
+/SiPINLC/geometry/bottomAirGap 10 um
+/SiPINLC/geometry/topAirGap 0.10 mm
+/SiPINLC/geometry/sideGap 0.10 mm
+/SiPINLC/geometry/sideContactRatio 0.0
+
+/SiPINLC/sanity/wallModel 2
+/SiPINLC/sanity/wallReflectivity 1.0
+/SiPINLC/sanity/wallApplySide true
+/SiPINLC/sanity/wallApplyTop true
+
+/run/initialize
+/run/beamOn 200000
+
+

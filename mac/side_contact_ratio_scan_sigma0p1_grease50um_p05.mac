@@ -1,0 +1,24 @@
+# Side contact ratio scan (probabilistic boundary), sigma_alpha=0.1 rad
+# With grease 50 um, p = 0.5
+
+/control/verbose 0
+/run/verbose 0
+/tracking/verbose 0
+/process/optical/verbose 0
+
+/SiPINLC/sipin/pdetMode 0
+
+# With grease
+/SiPINLC/geometry/greaseThickness 0.05 mm
+/SiPINLC/geometry/topAirGap 0.10 mm
+/SiPINLC/geometry/sideGap 0.10 mm
+
+# Crystal roughness baseline
+/SiPINLC/geometry/crystalSigmaAlpha 0.1 rad
+
+/SiPINLC/geometry/sideContactRatio 0.5
+
+/run/initialize
+/run/beamOn 10000
+
+

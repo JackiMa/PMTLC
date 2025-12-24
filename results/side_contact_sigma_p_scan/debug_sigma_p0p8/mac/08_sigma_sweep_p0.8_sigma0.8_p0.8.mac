@@ -1,0 +1,21 @@
+# Auto-generated scan macro
+# sigma_alpha = 0.8 rad
+# sideContactRatio p = 0.8
+
+/control/verbose 0
+/run/verbose 0
+/tracking/verbose 0
+/process/optical/verbose 0
+/run/numberOfThreads 1
+
+/SiPINLC/sipin/pdetMode 0
+
+/SiPINLC/geometry/greaseThickness 0.05 mm
+/SiPINLC/geometry/topAirGap 0.1 mm
+/SiPINLC/geometry/sideGap 0.1 mm
+
+/SiPINLC/geometry/crystalSigmaAlpha 0.8 rad
+/SiPINLC/geometry/sideContactRatio 0.8
+
+/run/initialize
+/run/beamOn 10000

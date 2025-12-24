@@ -1,0 +1,30 @@
+# Analytic/semi-analytic sanity check: "PTFE-like diffuse walls" on crystal SIDE+TOP (R=0.975)
+# Bottom coupling: AIR
+#
+# How to use:
+# - First run mac/analytic_sanity_lambert_air_R1.mac to get the N_wall distribution (WallHitCount histogram)
+# - Then run this file. Compare:
+#     epsilon_col_direct(R=0.975)  vs  epsilon_col_pred(R) = E[R^{N_wall}] using N_wall from the R=1 run.
+#
+/control/verbose 0
+/run/verbose 0
+/tracking/verbose 0
+/process/optical/verbose 0
+
+/SiPINLC/sipin/pdetMode 0
+
+/SiPINLC/geometry/greaseThickness 0.0 mm
+/SiPINLC/geometry/bottomAirGap 10 um
+/SiPINLC/geometry/topAirGap 0.10 mm
+/SiPINLC/geometry/sideGap 0.10 mm
+/SiPINLC/geometry/sideContactRatio 0.0
+
+/SiPINLC/sanity/wallModel 2
+/SiPINLC/sanity/wallReflectivity 0.975
+/SiPINLC/sanity/wallApplySide true
+/SiPINLC/sanity/wallApplyTop true
+
+/run/initialize
+/run/beamOn 200000
+
+

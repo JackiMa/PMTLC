@@ -1,0 +1,26 @@
+# Roughness sanity (sigma_alpha = 0.1 rad): isotropic optical photons from crystal center
+# Goal: micro-roughness should break trapped modes and increase Photon Hit si.
+
+/control/verbose 0
+/run/verbose 0
+/tracking/verbose 0
+/process/optical/verbose 0
+
+/SiPINLC/sipin/pdetMode 0
+
+# No grease, use a thin bottom air gap
+/SiPINLC/geometry/greaseThickness 0.0 mm
+/SiPINLC/geometry/bottomAirGap 10 um
+/SiPINLC/geometry/topAirGap 0.10 mm
+/SiPINLC/geometry/sideGap 0.10 mm
+
+# Disable side-contact boundary logic for this test
+/SiPINLC/geometry/sideContactRatio 0.0
+
+# Crystal surface micro-roughness
+/SiPINLC/geometry/crystalSigmaAlpha 0.1 rad
+
+/run/initialize
+/run/beamOn 10000
+
+

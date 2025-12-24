@@ -1,0 +1,29 @@
+# Analytic sanity check: "specular mirror walls" on crystal SIDE+TOP (R=1)
+# Bottom coupling: GREASE (n~1.46), grease slab thickness 50 um
+#
+# Prediction (closed-form, see docs/analytic_sanity_checks.md):
+#   epsilon_col = 1 - sqrt(1 - (n2/n1)^2), with n2=n_grease, n1=n_crystal
+#
+/control/verbose 0
+/run/verbose 0
+/tracking/verbose 0
+/process/optical/verbose 0
+
+/SiPINLC/sipin/pdetMode 0
+
+# Bottom coupling: grease (bottom is grease slab inside sc_gap)
+/SiPINLC/geometry/greaseThickness 0.05 mm
+
+/SiPINLC/geometry/topAirGap 0.10 mm
+/SiPINLC/geometry/sideGap 0.10 mm
+/SiPINLC/geometry/sideContactRatio 0.0
+
+/SiPINLC/sanity/wallModel 1
+/SiPINLC/sanity/wallReflectivity 1.0
+/SiPINLC/sanity/wallApplySide true
+/SiPINLC/sanity/wallApplyTop true
+
+/run/initialize
+/run/beamOn 200000
+
+

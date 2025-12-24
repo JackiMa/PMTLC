@@ -1,0 +1,10 @@
+Ideal closed-form model parameters:
+n1 (crystal) = 1.86
+bottom medium cases: grease (n2=1.46) and air (n2=1.0)
+R_contact (PTFE-like) = 0.975
+p_bottom (mean-field) = 0.16666666666666666
+
+q(sigma) = 1 - exp(-(sigma/theta_c)^2), theta_c = asin(1/n1)
+airgap_mode=collect_all: air-gap escape fully recovered (upper bound)
+airgap_mode=discard_escaped: escape into air-gap discarded forever (bare-crystal lower bound)
+epsilon_col solved by 2-state (U/T) Markov chain; see research/drafts/ideal_closed_form_sigma_p_derivation.md
