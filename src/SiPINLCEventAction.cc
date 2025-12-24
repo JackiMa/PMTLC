@@ -94,7 +94,8 @@ void SiPINLCEventAction::BeginOfEventAction(const G4Event *)
   fEscapeTopAir = 0;
   fEscapeSideAir = 0;
   fEscapePTFE = 0;
-  fEscapeOther = 0;
+  fEscapeGrease = 0;
+  fEscapeWorld = 0;
   fThetaSumDeg = 0.0;
   fThetaCount = 0;
   fWallHitCount = 0;
@@ -133,12 +134,13 @@ void SiPINLCEventAction::EndOfEventAction(const G4Event *event)
   }
   
   // === 论文所需：填充逃逸通道统计直方图 ===
-  // 通道编码: 0=被晶体吸收, 1=从顶面逃逸, 2=从侧面逃逸, 3=被PTFE吸收, 4=其他
+  // 通道编码: 0=被晶体吸收, 1=从顶面逃逸, 2=从侧面逃逸, 3=被PTFE吸收, 4=Grease吸收/逃逸, 5=World逃逸
   if (fEscapeAbsorbed > 0) analysisManager->FillH1(gID_H1_escape_channel, 0, fEscapeAbsorbed);
   if (fEscapeTopAir > 0) analysisManager->FillH1(gID_H1_escape_channel, 1, fEscapeTopAir);
   if (fEscapeSideAir > 0) analysisManager->FillH1(gID_H1_escape_channel, 2, fEscapeSideAir);
   if (fEscapePTFE > 0) analysisManager->FillH1(gID_H1_escape_channel, 3, fEscapePTFE);
-  if (fEscapeOther > 0) analysisManager->FillH1(gID_H1_escape_channel, 4, fEscapeOther);
+  if (fEscapeGrease > 0) analysisManager->FillH1(gID_H1_escape_channel, 4, fEscapeGrease);
+  if (fEscapeWorld > 0) analysisManager->FillH1(gID_H1_escape_channel, 5, fEscapeWorld);
   
   // === 论文所需：填充每事件产生的光子数 ===
   analysisManager->FillH1(gID_H1_photon_generated, fPhotonGenerated);
@@ -168,7 +170,8 @@ void SiPINLCEventAction::EndOfEventAction(const G4Event *event)
       /*escTop*/ fEscapeTopAir,
       /*escSide*/ fEscapeSideAir,
       /*escPTFE*/ fEscapePTFE,
-      /*escOther*/ fEscapeOther,
+      /*escGrease*/ fEscapeGrease,
+      /*escWorld*/ fEscapeWorld,
       /*thetaSumDeg*/ fThetaSumDeg,
       /*thetaCount*/ fThetaCount,
       /*hitCountSum*/ hitCountSum,

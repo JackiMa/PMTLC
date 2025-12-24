@@ -21,7 +21,8 @@ void SiPINLCRunStats::RegisterAccumulables()
   accMan->RegisterAccumulable(fAccEscTop);
   accMan->RegisterAccumulable(fAccEscSide);
   accMan->RegisterAccumulable(fAccEscPTFE);
-  accMan->RegisterAccumulable(fAccEscOther);
+  accMan->RegisterAccumulable(fAccEscGrease);
+  accMan->RegisterAccumulable(fAccEscWorld);
   accMan->RegisterAccumulable(fAccThetaSumDeg);
   accMan->RegisterAccumulable(fAccThetaCount);
   accMan->RegisterAccumulable(fAccHitCountSum);
@@ -46,7 +47,8 @@ void SiPINLCRunStats::AccumulateEventStats(
   G4int escTop,
   G4int escSide,
   G4int escPTFE,
-  G4int escOther,
+  G4int escGrease,
+  G4int escWorld,
   G4double thetaSumDeg,
   G4int thetaCount,
   G4double hitCountSum,
@@ -60,7 +62,8 @@ void SiPINLCRunStats::AccumulateEventStats(
   fAccEscTop += escTop;
   fAccEscSide += escSide;
   fAccEscPTFE += escPTFE;
-  fAccEscOther += escOther;
+  fAccEscGrease += escGrease;
+  fAccEscWorld += escWorld;
   fAccThetaSumDeg += thetaSumDeg;
   fAccThetaCount += thetaCount;
   fAccHitCountSum += hitCountSum;

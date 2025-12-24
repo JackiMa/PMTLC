@@ -40,7 +40,6 @@ inline G4bool g_sanity_wall_apply_top = true;
 // surface properties
 inline G4OpticalSurface *surf_ESR = MyMaterials::surf_ESR();
 // PTFE反射率：论文中使用97.5%反射率 (2.5%透过率)
-// 采用论文基准：97.5% reflectivity（2.5% transmittance）
 inline G4OpticalSurface *surf_Hreflex = MyMaterials::surf_Teflon(0.025);
 inline G4OpticalSurface *surf_Lreflex = MyMaterials::surf_Teflon(0.4);
 
@@ -71,6 +70,9 @@ inline G4double g_top_airgap_thickness = 0.1*mm;  // 顶面空气层厚度 (论�
 inline G4double g_side_contact_ratio = 0.0;
 // 顶面贴合比例 0~1, 用于概率边界法（只在晶体顶面 +z 与 sc_gap 边界生效）
 inline G4double g_top_contact_ratio = 0.0;
+// PTFE 反射率（用于概率边界法和 BorderSurface）
+// 0.975 = 论文基准值；1.0 = 理想反射（用于 sanity check）
+inline G4double g_ptfe_reflectivity = 0.975;
 
 // 晶体表面微粗糙（UNIFIED sigma_alpha, 单位 rad）
 // 0 表示理想镜面界面（Fresnel + 完全平整）；>0 表示微表面法线分布展宽（角度扩散），可打破“困光/导波”。

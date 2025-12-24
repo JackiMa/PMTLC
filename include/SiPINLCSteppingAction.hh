@@ -33,6 +33,8 @@
 #include "SiPINLCEventAction.hh"
 #include "globals.hh"
 #include "G4UserSteppingAction.hh"
+#include "G4ThreeVector.hh"
+#include <map>
 
 class SiPINLCSteppingAction : public G4UserSteppingAction
 {
@@ -44,6 +46,17 @@ class SiPINLCSteppingAction : public G4UserSteppingAction
 
  private:
   SiPINLCEventAction* fEventAction;
+  
+  // 概率边界法状态跟踪（per-track）
+  // 当光子从晶体进入 sc_gap 且触发贴合模式时，记录其原始位置
+  // 等待光子与 wrapper 交互后，如果被反射则推回原始位置
+  struct ProbBoundaryState {
+    G4bool active = false;       // 是否处于贴合模式
+    G4ThreeVector entryPos;      // 进入 sc_gap 前的位置
+    G4ThreeVector entryDir;      // 进入 sc_gap 前的方向
+    G4int trackID = -1;          // 跟踪的光子 ID
+  };
+  std::map<G4int, ProbBoundaryState> fProbBoundaryStates;  // 每个线程一个
 };
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......

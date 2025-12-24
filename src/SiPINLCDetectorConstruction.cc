@@ -165,56 +165,59 @@ G4VPhysicalVolume *SiPINLCDetectorConstruction::Construct()
   {
     // wrapper - 论文中的PTFE封装
     //
-    // 关键修复（对齐 d44848b 的“底部开口”物理图像）：
-    // - `sc_gap`（空气层）放在 World 里，底面与 SiPIN 顶面齐平
-    // - Wrapper 不作为 `sc_gap` 的母体积，而是一个“壳体”（SubtractionSolid 开腔），底部不封死
-    //   这样 `G4LogicalSkinSurface` 的 PTFE 反射面不会把底部通道“封住”
+    // 正确的层级结构（避免缝隙）：
+    //   World → wrapper → sc_gap → crystal
+    //
+    // 底部开窗实现：
+    //   - wrapper 底部与 SiPIN 顶面齐平
+    //   - sc_gap 通过负向 z 偏移，使其底面与 wrapper 底面齐平
+    //   - 这样 SkinSurface 只在 sc_gap 碰到 wrapper 的侧面和顶面生效
+    //   - 底面光子直接从 sc_gap 进入 World，然后进入 grease/sipin
     //
     // 结构（从下到上）：
-    //   sipin_si
-    //   sc_gap (air container in World; contains optional optical_grease + crystal)
-    //   wrapper shell (PTFE/PVC) around sides + top (bottom open)
+    //   sipin_si (in World)
+    //   optical_grease (in World, optional)
+    //   wrapper (in World) 包含 sc_gap
+    //   sc_gap (in wrapper) 包含 crystal
 
     const G4double grease_effective = (g_grease_thickness > 10 * um) ? g_grease_thickness : 0.0;
-    const G4double bottom_gap = (grease_effective > 0.0) ? grease_effective : g_bottom_airgap_thickness;
     const G4double sipin_top_z = g_sipin_pos.z() + 0.5 * g_sipin_thickness;
+    // 底部间隙高度（grease 或 空气层）
+    const G4double bottom_layer_height = (grease_effective > 0) ? grease_effective : g_bottom_airgap_thickness;
 
-    // --- sc_gap: air container in world
-    // IMPORTANT:
-    // Do NOT shrink `sc_gap` relative to the wrapper cavity.
-    // If `sc_gap` is even slightly smaller, Geant4 creates a thin "world air" slit
-    // between `sc_gap` and the PTFE wrapper inner wall, and also between `sc_gap` and SiPIN top.
-    // That breaks the intended optics topology:
-    // - PTFE reflective skin surface no longer acts (photons never touch the wrapper)
-    // - grease/sc_gap -> sipin_si interface hook may not trigger (extra world boundary)
-    name = "sc_gap";
-    const G4double gapX = g_crystalX + 2 * g_gap_thickness;
-    const G4double gapY = g_crystalY + 2 * g_gap_thickness;
-    const G4double gapZ = bottom_gap + g_crystalZ + g_top_airgap_thickness;
-    G4Box *s_gap = new G4Box(name, 0.5 * gapX, 0.5 * gapY, 0.5 * gapZ);
-    G4LogicalVolume *l_gap = new G4LogicalVolume(s_gap, g_world_material, name);
-    const G4ThreeVector gap_world_pos(0, 0, sipin_top_z + 0.5 * gapZ);
-    MyPhysicalVolume *p_gap = new MyPhysicalVolume(0, gap_world_pos, name, l_gap, p_world, false, 0, checkOverlaps);
-    fVolumeMap[name] = p_gap;
-    p_crystal_Container = p_gap;
-
-    // --- wrapper shell in world (open bottom): outer box minus inner cavity box
+    // --- wrapper: 实心盒子，包含 sc_gap
     name = gN_sc_wrapper;
-    wrapperX = gapX + 2 * g_wrapper_thickness;
-    wrapperY = gapY + 2 * g_wrapper_thickness;
-    wrapperZ = gapZ + g_wrapper_thickness; // only top cap thickness
-    wrapper_pos = G4ThreeVector(0, 0, sipin_top_z + 0.5 * wrapperZ);
+    // wrapper 尺寸：晶体 + 侧面间隙 + wrapper 厚度
+    wrapperX = g_crystalX + 2 * g_gap_thickness + 2 * g_wrapper_thickness;
+    wrapperY = g_crystalY + 2 * g_gap_thickness + 2 * g_wrapper_thickness;
+    // wrapper 高度：晶体 + 顶面间隙 + 顶面 wrapper 厚度（底面开窗，不加底面厚度）
+    wrapperZ = g_crystalZ + g_top_airgap_thickness + g_wrapper_thickness;
+    
+    // wrapper 位置：底面与底部间隙层顶面齐平
+    G4double wrapper_bottom_z = sipin_top_z + bottom_layer_height;
+    wrapper_pos = G4ThreeVector(0, 0, wrapper_bottom_z + 0.5 * wrapperZ);
 
-    G4Box *s_wrapper_outer = new G4Box("wrapper_outer", 0.5 * wrapperX, 0.5 * wrapperY, 0.5 * wrapperZ);
-    G4Box *s_wrapper_inner = new G4Box("wrapper_cavity", 0.5 * gapX, 0.5 * gapY, 0.5 * gapZ);
-    // cavity bottom aligned with wrapper bottom => open bottom, top cap thickness = g_wrapper_thickness
-    const G4ThreeVector cavity_offset(0, 0, -0.5 * wrapperZ + 0.5 * gapZ);
-    G4SubtractionSolid *s_wrapper = new G4SubtractionSolid(name, s_wrapper_outer, s_wrapper_inner, nullptr, cavity_offset);
+    G4Box *s_wrapper = new G4Box(name, 0.5 * wrapperX, 0.5 * wrapperY, 0.5 * wrapperZ);
     G4LogicalVolume *l_wrapper = new G4LogicalVolume(s_wrapper, g_wrapper_material, name);
     MyPhysicalVolume *p_wrapper = new MyPhysicalVolume(0, wrapper_pos, name, l_wrapper, p_world, false, 0, checkOverlaps);
     fVolumeMap[name] = p_wrapper;
 
-    // PTFE reflective surface (skin) on wrapper shell
+    // --- sc_gap: 空气层，在 wrapper 内部
+    name = "sc_gap";
+    G4double gapX = g_crystalX + 2 * g_gap_thickness;
+    G4double gapY = g_crystalY + 2 * g_gap_thickness;
+    // gap 高度与 wrapper 内腔相同（wrapper 只有顶面封闭）
+    G4double gapZ = wrapperZ - g_wrapper_thickness;  // 去掉顶面 wrapper 厚度
+    // gap 位置：底面与 wrapper 底面齐平（负向偏移，使底面开窗）
+    G4ThreeVector gap_pos_in_wrapper(0, 0, -0.5 * g_wrapper_thickness);
+
+    G4Box *s_gap = new G4Box(name, 0.5 * gapX, 0.5 * gapY, 0.5 * gapZ);
+    G4LogicalVolume *l_gap = new G4LogicalVolume(s_gap, g_world_material, name);
+    MyPhysicalVolume *p_gap = new MyPhysicalVolume(0, gap_pos_in_wrapper, name, l_gap, p_wrapper, false, 0, checkOverlaps);
+    fVolumeMap[name] = p_gap;
+    p_crystal_Container = p_gap;
+
+    // PTFE reflective surface (skin) on wrapper
     new G4LogicalSkinSurface("WrapperGapSurface", l_wrapper, surf_Hreflex);
 
     // Visuals
@@ -227,16 +230,16 @@ G4VPhysicalVolume *SiPINLCDetectorConstruction::Construct()
     gapVisAtt->SetVisibility(true);
     l_gap->SetVisAttributes(gapVisAtt);
 
-    // --- optional grease slab inside sc_gap (bottom only)
-    MyPhysicalVolume* p_bottom_gap = nullptr;  // for bottom air gap (no grease case)
+    // --- optional grease slab in World (between wrapper bottom and sipin top)
+    // 注意：grease 需要覆盖整个 sc_gap 底面（不仅是晶体底面），否则光子从边缘逃逸
     if (grease_effective > 0.0)
     {
       name = "optical_grease";
-      // grease slab at bottom of sc_gap, XY matches crystal bottom
-      const G4ThreeVector grease_pos_in_gap(0, 0, -0.5 * gapZ + 0.5 * grease_effective);
-      G4Box *s_grease = new G4Box(name, 0.5 * g_crystalX, 0.5 * g_crystalY, 0.5 * grease_effective);
+      G4ThreeVector grease_pos(0, 0, sipin_top_z + 0.5 * grease_effective);
+      // grease 尺寸与 sc_gap 底面相同
+      G4Box *s_grease = new G4Box(name, 0.5 * gapX, 0.5 * gapY, 0.5 * grease_effective);
       G4LogicalVolume *l_grease = new G4LogicalVolume(s_grease, g_grease_material, name);
-      MyPhysicalVolume *p_grease = new MyPhysicalVolume(0, grease_pos_in_gap, name, l_grease, p_gap, false, 0, checkOverlaps);
+      MyPhysicalVolume *p_grease = new MyPhysicalVolume(0, grease_pos, name, l_grease, p_world, false, 0, checkOverlaps);
       fVolumeMap[name] = p_grease;
 
       G4VisAttributes *greaseVisAtt = new G4VisAttributes(G4Colour(0.1, 0.5, 1, 0.5));
@@ -246,14 +249,14 @@ G4VPhysicalVolume *SiPINLCDetectorConstruction::Construct()
     }
     else
     {
-      // --- Create a dedicated bottom air gap volume (sc_bottom_gap) ---
-      // This separates the crystal bottom face from sc_gap so we can apply PTFE 
-      // BorderSurface only to crystal<->sc_gap (side/top) without affecting bottom.
+      // 无 grease 时，创建一个空气层覆盖 sc_gap 底面和 sipin 顶面之间
+      // 尺寸与 sc_gap 底面相同，确保光子不会从边缘逃入 World
       name = "sc_bottom_gap";
-      const G4ThreeVector bottom_gap_pos_in_gap(0, 0, -0.5 * gapZ + 0.5 * bottom_gap);
-      G4Box *s_bottom_gap = new G4Box(name, 0.5 * g_crystalX, 0.5 * g_crystalY, 0.5 * bottom_gap);
+      G4double bottom_air = bottom_layer_height;  // 已经在前面定义
+      G4ThreeVector bottom_gap_pos(0, 0, sipin_top_z + 0.5 * bottom_air);
+      G4Box *s_bottom_gap = new G4Box(name, 0.5 * gapX, 0.5 * gapY, 0.5 * bottom_air);
       G4LogicalVolume *l_bottom_gap = new G4LogicalVolume(s_bottom_gap, g_world_material, name);
-      p_bottom_gap = new MyPhysicalVolume(0, bottom_gap_pos_in_gap, name, l_bottom_gap, p_gap, false, 0, checkOverlaps);
+      MyPhysicalVolume *p_bottom_gap = new MyPhysicalVolume(0, bottom_gap_pos, name, l_bottom_gap, p_world, false, 0, checkOverlaps);
       fVolumeMap[name] = p_bottom_gap;
       
       G4VisAttributes *bottomGapVisAtt = new G4VisAttributes(G4Colour(0.8, 0.8, 1.0, 0.3));
@@ -262,52 +265,22 @@ G4VPhysicalVolume *SiPINLCDetectorConstruction::Construct()
       l_bottom_gap->SetVisAttributes(bottomGapVisAtt);
     }
 
-    // Crystal position inside sc_gap: above bottom layer (grease or thin air gap)
-    crystal_pos = G4ThreeVector(0, 0, -0.5 * gapZ + bottom_gap + 0.5 * g_crystalZ);
+    // Crystal position inside sc_gap: at bottom of gap
+    crystal_pos = G4ThreeVector(0, 0, -0.5 * gapZ + 0.5 * g_crystalZ);
 
-    if (grease_effective > 0) {
-      G4cout << "=== Geometry Info (With Grease) ===" << G4endl;
-      G4cout << "Grease is a bottom slab only (sides/top remain air) [EXPECTED]" << G4endl;
-    } else {
-      G4cout << "=== Geometry Info (No Grease) ===" << G4endl;
-      G4cout << "Crystal bottom faces thin air layer (bottomAirGap) [EXPECTED]" << G4endl;
-    }
-    
-    // 输出几何信息用于验证（重点：确认 bottom 开口没有被 wrapper “封死”）
-    const G4double z_sipin_top = sipin_top_z;
-    const G4double z_gap_bot = gap_world_pos.z() - 0.5 * gapZ;
-    const G4double z_gap_top = gap_world_pos.z() + 0.5 * gapZ;
-    const G4double z_wrapper_bot = wrapper_pos.z() - 0.5 * wrapperZ;
-    const G4double z_wrapper_top = wrapper_pos.z() + 0.5 * wrapperZ;
-
-    G4double z_grease_bot = 0, z_grease_top = 0, z_crystal_bot = 0, z_crystal_top = 0;
-    if (grease_effective > 0.0)
-    {
-      const G4double z_grease_center = gap_world_pos.z() + (-0.5 * gapZ + 0.5 * grease_effective);
-      z_grease_bot = z_grease_center - 0.5 * grease_effective;
-      z_grease_top = z_grease_center + 0.5 * grease_effective;
-    }
-    // crystal (in sc_gap, above bottom layer)
-    const G4double z_crystal_center = gap_world_pos.z() + crystal_pos.z();
-    z_crystal_bot = z_crystal_center - 0.5 * g_crystalZ;
-    z_crystal_top = z_crystal_center + 0.5 * g_crystalZ;
-
+    // 输出几何信息用于验证
+    G4cout << "=== Geometry Info (TEFLON mode - Hierarchical) ===" << G4endl;
+    G4cout << "Structure: World -> wrapper -> sc_gap -> crystal" << G4endl;
     G4cout << "Crystal size: " << g_crystalX/mm << " x " << g_crystalY/mm << " x " << g_crystalZ/mm << " mm^3" << G4endl;
+    G4cout << "Side gap thickness: " << g_gap_thickness/um << " um" << G4endl;
     G4cout << "Top air gap thickness: " << g_top_airgap_thickness/um << " um" << G4endl;
-    G4cout << "Side air gap thickness: " << g_gap_thickness/um << " um" << G4endl;
     G4cout << "Grease thickness: " << grease_effective/um << " um" << G4endl;
-    G4cout << "Bottom air gap thickness: " << g_bottom_airgap_thickness/um << " um" << G4endl;
     G4cout << "PTFE wrapper thickness: " << g_wrapper_thickness/mm << " mm" << G4endl;
     G4cout << "Wrapper size: " << wrapperX/mm << " x " << wrapperY/mm << " x " << wrapperZ/mm << " mm^3" << G4endl;
     G4cout << "Gap size: " << gapX/mm << " x " << gapY/mm << " x " << gapZ/mm << " mm^3" << G4endl;
-    G4cout << "Z check (mm): sipin_top=" << z_sipin_top / mm
-           << " gap_bot=" << z_gap_bot / mm << " gap_top=" << z_gap_top / mm
-           << " wrapper_bot=" << z_wrapper_bot / mm << " wrapper_top=" << z_wrapper_top / mm << G4endl;
-    if (grease_effective > 0.0)
-    {
-      G4cout << "Z check (mm): grease_bot=" << z_grease_bot / mm << " grease_top=" << z_grease_top / mm
-             << " crystal_bot=" << z_crystal_bot / mm << " crystal_top=" << z_crystal_top / mm << G4endl;
-    }
+    G4cout << "Wrapper bottom z: " << wrapper_bottom_z/mm << " mm (should = sipin_top + grease)" << G4endl;
+    G4cout << "SiPIN top z: " << sipin_top_z/mm << " mm" << G4endl;
+    G4cout << "Bottom opening: light can exit sc_gap bottom -> (grease) -> sipin" << G4endl;
     G4cout << "===========================================" << G4endl;
   }
   else if(    g_wrapper_Type == CYLINDER  ){
@@ -362,7 +335,12 @@ G4VPhysicalVolume *SiPINLCDetectorConstruction::Construct()
   // Apply on crystal <-> sc_gap interfaces.
   // - sigma_alpha = 0: keep default smooth Fresnel interface
   // - sigma_alpha > 0: micro-facet normal spread -> angular diffusion -> helps break trapped modes
-  if (g_crystal_sigma_alpha > 0.0)
+  //
+  // NOTE: When sideContactRatio >= 1.0 or topContactRatio >= 1.0, we use dielectric_metal
+  // surface instead to bypass TIR. In that case, skip this dielectric_dielectric surface.
+  const G4bool usePtfeContact = (g_side_contact_ratio >= 1.0 || g_top_contact_ratio >= 1.0);
+  
+  if (g_crystal_sigma_alpha > 0.0 && !usePtfeContact)
   {
     auto itGap = fVolumeMap.find("sc_gap");
     if (itGap != fVolumeMap.end() && itGap->second)
@@ -386,6 +364,10 @@ G4VPhysicalVolume *SiPINLCDetectorConstruction::Construct()
     {
       G4cerr << "[Surface] WARNING: sc_gap not found; cannot apply crystal sigma_alpha surface." << G4endl;
     }
+  }
+  else if (g_crystal_sigma_alpha > 0.0 && usePtfeContact)
+  {
+    G4cout << "[Surface] Skipping sigma_alpha dielectric_dielectric surface (PTFE contact mode active)." << G4endl;
   }
 
   // === PTFE contact surface (for sanity-check scenarios B/C) ===

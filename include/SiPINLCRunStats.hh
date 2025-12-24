@@ -33,7 +33,8 @@ public:
     G4int escTop,
     G4int escSide,
     G4int escPTFE,
-    G4int escOther,
+    G4int escGrease,
+    G4int escWorld,
     G4double thetaSumDeg,
     G4int thetaCount,
     G4double hitCountSum,
@@ -48,7 +49,8 @@ public:
   G4int EscTop() const { return fAccEscTop.GetValue(); }
   G4int EscSide() const { return fAccEscSide.GetValue(); }
   G4int EscPTFE() const { return fAccEscPTFE.GetValue(); }
-  G4int EscOther() const { return fAccEscOther.GetValue(); }
+  G4int EscGrease() const { return fAccEscGrease.GetValue(); }
+  G4int EscWorld() const { return fAccEscWorld.GetValue(); }
   G4double ThetaSumDeg() const { return fAccThetaSumDeg.GetValue(); }
   G4int ThetaCount() const { return fAccThetaCount.GetValue(); }
   G4double HitCountSum() const { return fAccHitCountSum.GetValue(); }
@@ -65,7 +67,8 @@ private:
   G4Accumulable<G4int> fAccEscTop{0};
   G4Accumulable<G4int> fAccEscSide{0};
   G4Accumulable<G4int> fAccEscPTFE{0};
-  G4Accumulable<G4int> fAccEscOther{0};
+  G4Accumulable<G4int> fAccEscGrease{0};
+  G4Accumulable<G4int> fAccEscWorld{0};
   G4Accumulable<G4double> fAccThetaSumDeg{0.0};
   G4Accumulable<G4int> fAccThetaCount{0};
   G4Accumulable<G4double> fAccHitCountSum{0.0};

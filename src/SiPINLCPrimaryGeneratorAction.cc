@@ -112,7 +112,7 @@ void SiPINLCPrimaryGeneratorAction::GeneratePrimaries(G4Event* anEvent)
     
     G4ParticleDefinition* optPhoton = G4ParticleTable::GetParticleTable()->FindParticle("opticalphoton");
     fParticleGun->SetParticleDefinition(optPhoton);
-    fParticleGun->SetParticleEnergy(2.0*eV);  // ~620 nm，吸收长度约360mm，用于验证自吸收
+    fParticleGun->SetParticleEnergy(2.254*eV);  // 550 nm (接近 GAGG 发射峰 530nm)，用于验证自吸收
     fParticleGun->SetParticlePosition(crystalPos);
     
     // *** 各向同性发射（球面均匀）***

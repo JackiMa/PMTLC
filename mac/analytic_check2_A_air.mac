@@ -13,4 +13,4 @@
 /SiPINLC/geometry/crystalSigmaAlpha 0.0 rad
 /SiPINLC/sanity/wallModel 0
 /run/initialize
-/run/beamOn 1000
+/run/beamOn 10000

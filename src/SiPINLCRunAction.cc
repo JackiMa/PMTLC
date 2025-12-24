@@ -195,7 +195,8 @@ void SiPINLCRunAction::EndOfRunAction(const G4Run * run)
               << "Escaped_TopAir,"
               << "Escaped_SideAir,"
               << "Escaped_PTFE,"
-              << "Escaped_Other,"
+              << "Escaped_Grease,"
+              << "Escaped_World,"
               << "Mean_IncidenceAngle_deg,"
               << "Mean_HitCount" << "\n";
     }
@@ -218,7 +219,8 @@ void SiPINLCRunAction::EndOfRunAction(const G4Run * run)
     const G4int escapeTopAir = stats.EscTop();
     const G4int escapeSideAir = stats.EscSide();
     const G4int escapePTFE = stats.EscPTFE();
-    const G4int escapeOther = stats.EscOther();
+    const G4int escapeGrease = stats.EscGrease();
+    const G4int escapeWorld = stats.EscWorld();
     
     // === 论文所需：入射角和撞击次数的均值 ===
     const G4int thetaN = stats.ThetaCount();
@@ -236,7 +238,8 @@ void SiPINLCRunAction::EndOfRunAction(const G4Run * run)
             << escapeTopAir << ","
             << escapeSideAir << ","
             << escapePTFE << ","
-            << escapeOther << ","
+            << escapeGrease << ","
+            << escapeWorld << ","
             << meanTheta << ","
             << meanHitCount << "\n";
 

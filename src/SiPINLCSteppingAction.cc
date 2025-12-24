@@ -39,9 +39,25 @@
 #include "G4AnalysisManager.hh"
 #include "G4RandomTools.hh"
 #include "G4GeometryTolerance.hh"
+#include "G4TransportationManager.hh"
+#include "G4Navigator.hh"
 
 #include "config.hh"
 #include "SipinPDETable.hh"
+
+namespace {
+// 在 SetPosition 后同步 navigator 状态，避免 GeomNav1002 警告
+void SyncNavigator(G4Track* track)
+{
+    auto navigator = G4TransportationManager::GetTransportationManager()
+                         ->GetNavigatorForTracking();
+    navigator->LocateGlobalPointAndSetup(
+        track->GetPosition(),
+        nullptr,
+        false
+    );
+}
+} // namespace
 
 namespace {
 // Cosine-weighted (Lambertian) hemisphere sampling around a given axis (must be unit).
@@ -62,17 +78,17 @@ G4ThreeVector SampleLambertianHemisphere(const G4ThreeVector& axisUnit)
     G4ThreeVector dir = (sinTheta * std::cos(phi)) * u + (sinTheta * std::sin(phi)) * v + (cosTheta) * w;
     return dir.unit();
 }
+} // namespace
 
-// Extract reflectivity from an optical surface material properties table, if present.
-// If missing, returns fallback.
-G4double GetSurfaceReflectivity(const G4OpticalSurface* surf, G4double photonEnergy, G4double fallback = 1.0)
+namespace {
+// Transform a global point into the local coordinates of the pre-step volume.
+// This follows the same pattern used in CustomScorer.cc in this repo.
+G4ThreeVector ToLocalPreVolume(const G4StepPoint* preStepPoint, const G4ThreeVector& globalPoint)
 {
-    if (!surf) return fallback;
-    auto* mpt = surf->GetMaterialPropertiesTable();
-    if (!mpt) return fallback;
-    auto* vec = mpt->GetProperty("REFLECTIVITY");
-    if (!vec) return fallback;
-    return vec->Value(photonEnergy);
+    auto touchable = preStepPoint->GetTouchableHandle();
+    if (!touchable) return globalPoint;
+    const G4AffineTransform transform = touchable->GetHistory()->GetTopTransform();
+    return transform.TransformPoint(globalPoint);
 }
 } // namespace
 
@@ -313,43 +329,173 @@ void SiPINLCSteppingAction::UserSteppingAction(const G4Step *step)
                     // Move along reflected direction to guarantee we're inside the pre-volume (grease/airgap)
                     const G4ThreeVector backPos = preStepPoint->GetPosition() + push * reflDir.unit();
                     aTrack->SetPosition(backPos);
+                    SyncNavigator(aTrack);  // 同步 navigator 避免 GeomNav1002
                     aTrack->SetMomentumDirection(reflDir.unit());
                     aTrack->SetTrackStatus(fAlive);
                 }
             }
         }
 
-        // === Sanity wall override (analytic-friendly scenarios) ===
-        // DISABLED: The stepping override with SetPosition() causes GeomNav1002 warnings.
-        // Instead, use sideContactRatio=1.0 + topContactRatio=1.0 which sets up
-        // G4LogicalBorderSurface in DetectorConstruction for proper optical boundary handling.
-        /*
-        if (g_sanity_wall_model != SANITY_WALL_OFF)
+        // === 概率边界法：侧面/顶面 PTFE 贴合比例 ===
+        // 
+        // 物理模型：
+        // - 以概率 p：光子遇到贴合的 PTFE
+        //   - 以概率 R：PTFE 漫反射回晶体
+        //   - 以概率 1-R：PTFE 吸收
+        // - 以概率 1-p：光子遇到空气层，正常 TIR 或透射
+        //
+        // 实现要点：
+        // - crystalToGap=true 意味着光子已透射进入 sc_gap
+        // - 当抽中 PTFE 反射时，需要把光子推回晶体内
+        // - 推回位置：晶体最接近当前点的坐标（只差 1μm，误差可忽略）
+        // - 推回方向：PTFE 漫反射方向（Lambertian）
+        
+        const G4bool crystalToGap = (preVolumeName == gN_sc_crystal) && 
+                                     (postVolumeName == "sc_gap");
+        
+        // 概率边界法：对于 p > 0 的所有情况都适用（包括 p = 1.0）
+        if (crystalToGap && 
+            (g_side_contact_ratio > 0.0 || g_top_contact_ratio > 0.0))
         {
-            // ... disabled to avoid GeomNav1002 warnings ...
-        }
-        */
+            G4ThreeVector prePos = preStepPoint->GetPosition();
+            G4ThreeVector postPos = postStepPoint->GetPosition();
 
-        // === 侧面贴合比例（概率边界法）===
-        // NOTE: When sideContactRatio >= 1.0 or topContactRatio >= 1.0, we use
-        // G4LogicalBorderSurface (set up in DetectorConstruction) to handle the
-        // PTFE reflection. This avoids modifying track position and GeomNav1002 warnings.
-        //
-        // This stepping override is only used for PARTIAL contact (0 < ratio < 1):
-        // - With probability p = ratio, treat as PTFE contact (reflection/absorption)
-        // - With probability 1-p, let Geant4 handle normal Fresnel/TIR
-        //
-        // DISABLED FOR NOW: The position modification causes GeomNav1002 floods.
-        // For partial contact scenarios, use sideContactRatio=1.0 (full PTFE) or 0.0 (no contact).
-        // TODO: Implement partial contact without position modification if needed.
-        /*
-        if (g_sanity_wall_model == SANITY_WALL_OFF && 
-            ((g_side_contact_ratio > 0.0 && g_side_contact_ratio < 1.0) || 
-             (g_top_contact_ratio > 0.0 && g_top_contact_ratio < 1.0)))
-        {
-            // ... partial contact logic disabled to avoid GeomNav1002 ...
+            // === 关键修正：用晶体局部坐标来判别“跨的是哪一个面” ===
+            // 不能用 global z 近似 bottomZ（会因晶体位置/容差导致误判）。
+            // 用 preStep 的 touchable transform 把边界点投到 crystal local (Box) 坐标系中。
+            const G4ThreeVector preLocal = ToLocalPreVolume(preStepPoint, prePos);
+            const G4double halfX = 0.5 * g_crystalX;
+            const G4double halfY = 0.5 * g_crystalY;
+            const G4double halfZ = 0.5 * g_crystalZ;
+
+            // 面判据：靠近哪一面（用 surface tolerance 做容差）
+            const G4double tol = G4GeometryTolerance::GetInstance()->GetSurfaceTolerance();
+            const G4bool onPosX = std::abs(preLocal.x() - (+halfX)) < 50.0 * tol;
+            const G4bool onNegX = std::abs(preLocal.x() - (-halfX)) < 50.0 * tol;
+            const G4bool onPosY = std::abs(preLocal.y() - (+halfY)) < 50.0 * tol;
+            const G4bool onNegY = std::abs(preLocal.y() - (-halfY)) < 50.0 * tol;
+            const G4bool onNegZ = std::abs(preLocal.z() - (-halfZ)) < 50.0 * tol; // bottom
+
+            const G4bool isSide = (onPosX || onNegX || onPosY || onNegY);
+            const G4bool isBottom = onNegZ;
+            
+            if (!isBottom)
+            {
+                G4double p = isSide ? g_side_contact_ratio : g_top_contact_ratio;
+                
+                if (p > 0.0)
+                {
+                    // 对于 p >= 1.0，总是走 PTFE 逻辑
+                    // 对于 0 < p < 1.0，按概率决定
+                    G4bool hitPTFE = (p >= 1.0) ? true : (G4UniformRand() < p);
+                    
+                    if (hitPTFE)
+                    {
+                        // === 贴合 PTFE 模式 ===
+                        G4double R = g_ptfe_reflectivity;
+                        G4double randR = G4UniformRand();
+                        
+                        if (randR >= R)
+                        {
+                            // 被 PTFE 吸收（概率 1-R = 2.5%）
+                            aTrack->SetTrackStatus(fStopAndKill);
+                            fEventAction->fEscapePTFE++;
+                            return;
+                        }
+                        else
+                        {
+                            // PTFE 漫反射（概率 R = 97.5%）
+                            // 计算法向量（指向晶体内）
+                            G4ThreeVector normal;
+                            if (onPosX) normal = G4ThreeVector(-1, 0, 0);
+                            else if (onNegX) normal = G4ThreeVector(+1, 0, 0);
+                            else if (onPosY) normal = G4ThreeVector(0, -1, 0);
+                            else if (onNegY) normal = G4ThreeVector(0, +1, 0);
+                            else normal = G4ThreeVector(0, 0, -1); // top face fallback
+                            
+                            // 生成朗伯漫反射方向
+                            G4ThreeVector newDir = SampleLambertianHemisphere(normal);
+                            aTrack->SetMomentumDirection(newDir);
+                            
+                            // 把光子推回晶体内最近的点
+                            // 使用 prePos（还在晶体内的边界处）并稍微推入
+                            G4ThreeVector newPos = prePos;
+                            // 沿着法向量（指向晶体内）推入一小段距离
+                            newPos += normal * 0.1 * um;
+                            
+                            aTrack->SetPosition(newPos);
+                            SyncNavigator(aTrack);  // 同步 navigator 避免 GeomNav1002
+                            aTrack->SetTrackStatus(fAlive);
+                        }
+                    }
+                    // hitPTFE == false：遇到空气层，让光子继续自然传播到 wrapper
+                }
+            }
         }
-        */
+        
+        // === 补丁：边界拦截 ===
+        // 当光子从 sc_gap/grease/sc_bottom_gap/wrapper 进入 World 时，应用 PTFE 反射/吸收
+        // 这模拟 wrapper 完全包裹（包括底部开窗区域的侧边）
+        // === 关键修正：不要把“底部开窗”也当成 PTFE 反射/吸收 ===
+        // 在 TEFLON 几何中：sc_gap 底面 -> World 是通往 grease/Si 的真实通道。
+        // 我们只拦截“本应被 wrapper 包裹的侧/顶方向 sc_gap->World 漏光”，以及 wrapper->World 外表面。
+        const G4bool postIsWorld = (postVolumeName == "World");
+        const G4bool preIsWrapper = (preVolumeName == gN_sc_wrapper);
+        const G4bool preIsGap = (preVolumeName == "sc_gap");
+
+        // 计算 wrapper 底面 z（与 DetectorConstruction 的 TEFLON 模式一致）
+        const G4double sipin_top_z = g_sipin_pos.z() + 0.5 * g_sipin_thickness;
+        const G4double grease_effective = (g_grease_thickness > 10 * um) ? g_grease_thickness : 0.0;
+        const G4double bottom_layer_height = (grease_effective > 0.0) ? grease_effective : g_bottom_airgap_thickness;
+        const G4double wrapper_bottom_z = sipin_top_z + bottom_layer_height;
+        const G4double zPost = postStepPoint->GetPosition().z();
+        const G4double tolWorld = G4GeometryTolerance::GetInstance()->GetSurfaceTolerance();
+        const G4bool isBottomOpeningCrossing = (zPost <= wrapper_bottom_z + 50.0 * tolWorld);
+
+        const G4bool volumeToWorld =
+            postIsWorld &&
+            (preIsWrapper || (preIsGap && !isBottomOpeningCrossing));
+        if (volumeToWorld)
+        {
+            // 应用 PTFE 反射/吸收（与 wrapper SkinSurface 相同的物理）
+            G4double R = g_ptfe_reflectivity;
+            G4double randR = G4UniformRand();
+            
+            if (randR >= R)
+            {
+                // 被 PTFE 吸收
+                aTrack->SetTrackStatus(fStopAndKill);
+                fEventAction->fEscapePTFE++;
+                return;
+            }
+            else
+            {
+                // PTFE 漫反射回 sc_gap（进而回晶体）
+                G4ThreeVector pos = postStepPoint->GetPosition();
+                G4double halfGapX = 0.5 * g_crystalX + g_gap_thickness;
+                G4double halfGapY = 0.5 * g_crystalY + g_gap_thickness;
+                
+                // 判断是哪个面
+                G4ThreeVector normal;
+                if (std::abs(pos.x()) >= halfGapX) {
+                    normal = G4ThreeVector(pos.x() > 0 ? -1 : 1, 0, 0);
+                } else if (std::abs(pos.y()) >= halfGapY) {
+                    normal = G4ThreeVector(0, pos.y() > 0 ? -1 : 1, 0);
+                } else {
+                    normal = G4ThreeVector(0, 0, -1);  // 顶面
+                }
+                
+                G4ThreeVector newDir = SampleLambertianHemisphere(normal);
+                aTrack->SetMomentumDirection(newDir);
+                
+                // 推回 sc_gap 内
+                G4ThreeVector newPos = preStepPoint->GetPosition();
+                newPos += normal * 0.1 * um;
+                aTrack->SetPosition(newPos);
+                SyncNavigator(aTrack);  // 同步 navigator 避免 GeomNav1002
+                aTrack->SetTrackStatus(fAlive);
+            }
+        }
         
         // === 论文所需：统计光子逃逸/损失通道 ===
         // 检测光子是否被终止（吸收、逃出世界等）
@@ -359,49 +505,136 @@ void SiPINLCSteppingAction::UserSteppingAction(const G4Step *step)
             // 跳过已经被我们统计为"成功探测"的光子
             if (fEventAction->processedTrackIDs.find(trackID) != fEventAction->processedTrackIDs.end())
                 return;
+            
+            // 获取终止进程名称
+            const G4VProcess* proc = postStepPoint->GetProcessDefinedStep();
+            G4String procName = proc ? proc->GetProcessName() : "unknown";
                 
-            // 根据终止位置分类
+            // 根据终止位置和进程分类
             if (preVolumeName == gN_sc_crystal)
             {
-                // 在晶体内被吸收
-                fEventAction->fEscapeAbsorbed++;
-                // 调试输出：打印前10个被"晶体吸收"的光子的详细信息
-                static G4int debugCount = 0;
-                if (debugCount < 10) {
-                    const G4VProcess* proc = postStepPoint->GetProcessDefinedStep();
-                    G4String procName = proc ? proc->GetProcessName() : "unknown";
-                    G4cout << "[DEBUG] CrystalAbsorbed #" << debugCount 
-                           << " pos=" << preStepPoint->GetPosition()/mm << " mm"
-                           << " dir=" << aTrack->GetMomentumDirection()
-                           << " process=" << procName
-                           << " postVol=" << postVolumeName
-                           << G4endl;
-                    debugCount++;
+                // 区分：晶体内自吸收 vs BorderSurface 边界吸收
+                if (procName == "OpAbsorption")
+                {
+                    // 真正的晶体自吸收
+                    fEventAction->fEscapeAbsorbed++;
+                }
+                else if (postVolumeName == "sc_gap" || postVolumeName == gN_sc_wrapper)
+                {
+                    // 在 crystal-sc_gap 或 crystal-wrapper 边界被吸收
+                    // 这是 BorderSurface (dielectric_metal) 的吸收
+                    fEventAction->fEscapePTFE++;
+                    
+                    // 调试输出
+                    static G4int debugBorderCount = 0;
+                    if (debugBorderCount < 5) {
+                        G4cout << "[DEBUG] BorderSurface absorbed #" << debugBorderCount++
+                               << " pre=" << preVolumeName 
+                               << " post=" << postVolumeName
+                               << " process=" << procName
+                               << G4endl;
+                    }
+                }
+                else
+                {
+                    // 其他情况（应该很少）
+                    fEventAction->fEscapeAbsorbed++;
+                    
+                    static G4int debugOtherCount = 0;
+                    if (debugOtherCount < 5) {
+                        G4cout << "[DEBUG] CrystalOther #" << debugOtherCount++
+                               << " pre=" << preVolumeName 
+                               << " post=" << postVolumeName
+                               << " process=" << procName
+                               << G4endl;
+                    }
                 }
             }
             else if (preVolumeName == gN_sc_wrapper)
             {
-                // 被PTFE/wrapper吸收
+                // 在 wrapper 内被吸收（光子进入 wrapper 后被吸收）
                 fEventAction->fEscapePTFE++;
             }
             else if (preVolumeName == "sc_gap")
             {
-                // 在gap中逃逸 - 需要进一步判断是顶面还是侧面
-                G4ThreeVector pos = preStepPoint->GetPosition();
-                // 简化判断：根据z坐标判断顶面还是侧面
-                // 如果z坐标较高（接近晶体顶部），认为是顶面逃逸
-                // 这里需要根据实际几何调整阈值
-                fEventAction->fEscapeSideAir++;  // 默认算作侧面
+                // 在 gap 中被终止
+                if (postVolumeName == gN_sc_wrapper)
+                {
+                    // 被 wrapper 的 SkinSurface 吸收
+                    fEventAction->fEscapePTFE++;
+                }
+                else
+                {
+                    fEventAction->fEscapeSideAir++;
+                }
             }
-            else if (postVolumeName == "OutOfWorld" || postVolumeName == "World")
+            else if (postVolumeName == "OutOfWorld")
             {
-                // 逃出世界
-                fEventAction->fEscapeOther++;
+                // 逃出世界边界
+                // 根据 preVolume 和位置判断归类
+                if (preVolumeName == "optical_grease" || preVolumeName == "sc_bottom_gap")
+                {
+                    // 从 grease 边缘逃出（合理的物理行为）
+                    fEventAction->fEscapeGrease++;
+                }
+                else if (preVolumeName == gN_sc_wrapper || preVolumeName == "sc_gap")
+                {
+                    // 从 wrapper 区域逃出
+                    fEventAction->fEscapePTFE++;
+                }
+                else
+                {
+                    // 从 World 边界逃出（不应发生）
+                    fEventAction->fEscapeWorld++;
+                    
+                    static G4int debugWorldCount = 0;
+                    if (debugWorldCount < 5) {
+                        G4cout << "[DEBUG] WorldEscape #" << debugWorldCount++
+                               << " pre=" << preVolumeName 
+                               << " pos=" << preStepPoint->GetPosition()/mm << " mm"
+                               << G4endl;
+                    }
+                }
+            }
+            else if (preVolumeName == "optical_grease" || preVolumeName == "sc_bottom_gap")
+            {
+                // 在 grease 或 bottom_gap 中被吸收（grease 有一定吸收）
+                fEventAction->fEscapeGrease++;
+            }
+            else if (preVolumeName == gN_sipin_si)
+            {
+                // 在 Si 中被吸收（正常物理过程，深入 Si 后被吸收）
+                // pdetMode=0 时，第一次到达 Si 就 kill 并计入 LightCollection
+                // 这里的情况是光子穿过了第一次统计后继续深入被吸收
+                // 不计入任何损失，因为已经被统计为探测到
+            }
+            else if (preVolumeName == "World")
+            {
+                // 在 World 中被终止
+                fEventAction->fEscapeWorld++;
+                
+                static G4int debugWorldAbsCount = 0;
+                if (debugWorldAbsCount < 5) {
+                    G4cout << "[DEBUG] WorldAbsorbed #" << debugWorldAbsCount++
+                           << " pre=" << preVolumeName 
+                           << " post=" << postVolumeName
+                           << " pos=" << preStepPoint->GetPosition()/mm << " mm"
+                           << G4endl;
+                }
             }
             else
             {
-                // 其他情况
-                fEventAction->fEscapeOther++;
+                // 其他未分类情况 - 输出警告并计入 World 类别
+                fEventAction->fEscapeWorld++;
+                
+                static G4int debugUnclassifiedCount = 0;
+                if (debugUnclassifiedCount < 10) {
+                    G4cout << "[WARN] Unclassified photon loss #" << debugUnclassifiedCount++
+                           << " pre=" << preVolumeName 
+                           << " post=" << postVolumeName
+                           << " process=" << procName
+                           << G4endl;
+                }
             }
         }
     }

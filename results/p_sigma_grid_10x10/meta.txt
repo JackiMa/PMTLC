@@ -1,0 +1,13 @@
+scan_p_sigma_10x10
+StartUTC: 2025-12-23T17:21:50Z
+Workspace: /home/wsl2/myGeant4/SiPINLC
+Binary: /home/wsl2/myGeant4/SiPINLC/build/SiPINLC
+N_PHOTONS: 1000
+N_THREADS: 8
+grease_um: 50
+bottom_airgap_um: 0
+top_airgap_um: 1
+side_gap_um: 1
+pdetMode: 0
+P_VALUES: 0.0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 1.0
+SIGMA_VALUES: 0.0 0.02 0.05 0.08 0.10 0.15 0.20 0.30 0.40 0.50
