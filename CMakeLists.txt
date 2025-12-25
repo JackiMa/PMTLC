@@ -63,6 +63,8 @@ set(SiPINLC_SCRIPTS
     optPhoton.mac
     gui.mac
     vis.mac
+    vis_after_rebuild.mac
+    apply_geometry_and_redraw.mac
   )
 
 foreach(_script ${SiPINLC_SCRIPTS})

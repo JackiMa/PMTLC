@@ -17,6 +17,7 @@ class G4UIcmdWithADoubleAndUnit;
 class G4UIcmdWithABool;
 class G4UIcmdWithAnInteger;
 class G4UIcmdWithAString;
+class G4UIcmdWithoutParameter;
 
 /// Messenger class for controlling simulation parameters
 /// Allows parameter scanning via MAC scripts
@@ -45,6 +46,7 @@ private:
     G4UIcmdWithADoubleAndUnit* fCrystalSigmaAlphaCmd; // UNIFIED sigma_alpha (rad)
     G4UIcmdWithABool* fSideContactCmd;  // true=贴合, false=有空气层
     G4UIcmdWithADouble* fSideContactRatioCmd; // 0~1 概率边界法（贴合比例）
+    G4UIcmdWithoutParameter* fRebuildGeometryCmd; // rebuild geometry when parameters changed at Idle
     
     // Material commands
     G4UIcmdWithADouble* fAbsorptionScaleCmd;  // 晶体吸收长度缩放系数

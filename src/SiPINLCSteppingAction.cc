@@ -39,6 +39,7 @@
 #include "G4AnalysisManager.hh"
 #include "G4RandomTools.hh"
 #include "G4GeometryTolerance.hh"
+#include "G4TransportationManager.hh"
 
 #include "config.hh"
 #include "SipinPDETable.hh"
@@ -75,6 +76,18 @@ G4double GetSurfaceReflectivity(const G4OpticalSurface* surf, G4double photonEne
     return vec->Value(photonEnergy);
 }
 } // namespace
+
+// Notify the navigator after we manually change a track position in stepping action.
+// This prevents floods of GeomNav1002 ("shifted considerably without notifying the navigator")
+// which can happen if we "teleport" a photon for statistical reflection models.
+static inline void NotifyNavigatorOfManualMove(const G4ThreeVector& newGlobalPos)
+{
+    if (auto* nav = G4TransportationManager::GetTransportationManager()->GetNavigatorForTracking())
+    {
+        // Update navigator's cached location for subsequent ComputeStep calls.
+        nav->LocateGlobalPointAndSetup(newGlobalPos, nullptr, false, true);
+    }
+}
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
@@ -315,6 +328,7 @@ void SiPINLCSteppingAction::UserSteppingAction(const G4Step *step)
                     aTrack->SetPosition(backPos);
                     aTrack->SetMomentumDirection(reflDir.unit());
                     aTrack->SetTrackStatus(fAlive);
+                    NotifyNavigatorOfManualMove(backPos);
                 }
             }
         }
@@ -385,6 +399,7 @@ void SiPINLCSteppingAction::UserSteppingAction(const G4Step *step)
                             aTrack->SetPosition(safePosInGap);
                             aTrack->SetMomentumDirection(newDir);
                             aTrack->SetTrackStatus(fAlive);
+                            NotifyNavigatorOfManualMove(safePosInGap);
                             return;
                         }
                         else

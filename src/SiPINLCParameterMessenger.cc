@@ -14,6 +14,9 @@
 #include "G4UIcmdWithABool.hh"
 #include "G4UIcmdWithAnInteger.hh"
 #include "G4UIcmdWithAString.hh"
+#include "G4UIcmdWithoutParameter.hh"
+#include "G4RunManager.hh"
+#include "G4StateManager.hh"
 #include "G4SystemOfUnits.hh"
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
@@ -106,6 +109,13 @@ SiPINLCParameterMessenger::SiPINLCParameterMessenger()
     fSideContactRatioCmd->SetRange("p>=0. && p<=1.");
     fSideContactRatioCmd->AvailableForStates(G4State_PreInit, G4State_Idle);
 
+    // Geometry rebuild helper command (convenience wrapper around /run/reinitializeGeometry)
+    fRebuildGeometryCmd = new G4UIcmdWithoutParameter("/SiPINLC/geometry/rebuild", this);
+    fRebuildGeometryCmd->SetGuidance("Rebuild geometry after changing geometry-dependent parameters at Idle.");
+    fRebuildGeometryCmd->SetGuidance("Internally calls G4RunManager::ReinitializeGeometry(true).");
+    fRebuildGeometryCmd->SetGuidance("Tip: In macros you can also use Geant4 built-in /run/reinitializeGeometry.");
+    fRebuildGeometryCmd->AvailableForStates(G4State_Idle);
+
     // === Material Commands ===
     
     // Absorption scale factor
@@ -193,6 +203,7 @@ SiPINLCParameterMessenger::~SiPINLCParameterMessenger()
     delete fCrystalSigmaAlphaCmd;
     delete fSideContactCmd;
     delete fSideContactRatioCmd;
+    delete fRebuildGeometryCmd;
     delete fAbsorptionScaleCmd;
     delete fEffectiveAbsLengthCmd;
     delete fPTFEReflectivityCmd;
@@ -215,32 +226,53 @@ SiPINLCParameterMessenger::~SiPINLCParameterMessenger()
 
 void SiPINLCParameterMessenger::SetNewValue(G4UIcommand* command, G4String newValue)
 {
+    const auto markGeometryModifiedIfIdle = []() {
+        auto* stateMgr = G4StateManager::GetStateManager();
+        const auto state = stateMgr ? stateMgr->GetCurrentState() : G4State_PreInit;
+        if (state == G4State_Idle) {
+            if (auto* rm = G4RunManager::GetRunManager()) {
+                rm->GeometryHasBeenModified();
+            }
+            G4cout << "NOTE: Geometry marked as modified." << G4endl;
+            G4cout << "      In UI mode, use the following sequence BEFORE the next /run/beamOn:" << G4endl;
+            G4cout << "        /SiPINLC/geometry/rebuild" << G4endl;
+            G4cout << "        /run/initialize" << G4endl;
+            G4cout << "        /vis/drawVolume" << G4endl;
+            G4cout << "        /vis/viewer/flush" << G4endl;
+        }
+    };
+
     // Geometry parameters
     if (command == fGreaseThicknessCmd) {
         g_grease_thickness = fGreaseThicknessCmd->GetNewDoubleValue(newValue);
         G4cout << "=== Parameter Update ===" << G4endl;
         G4cout << "Grease thickness set to: " << g_grease_thickness/um << " um" << G4endl;
+        markGeometryModifiedIfIdle();
     }
     else if (command == fBottomAirGapCmd) {
         g_bottom_airgap_thickness = fBottomAirGapCmd->GetNewDoubleValue(newValue);
         G4cout << "=== Parameter Update ===" << G4endl;
         G4cout << "Bottom air gap set to: " << g_bottom_airgap_thickness/um << " um" << G4endl;
+        markGeometryModifiedIfIdle();
     }
     else if (command == fTopAirGapCmd) {
         g_top_airgap_thickness = fTopAirGapCmd->GetNewDoubleValue(newValue);
         G4cout << "=== Parameter Update ===" << G4endl;
         G4cout << "Top air gap set to: " << g_top_airgap_thickness/um << " um" << G4endl;
+        markGeometryModifiedIfIdle();
     }
     else if (command == fSideGapCmd) {
         g_gap_thickness = fSideGapCmd->GetNewDoubleValue(newValue);
         G4cout << "=== Parameter Update ===" << G4endl;
         G4cout << "Side gap set to: " << g_gap_thickness/um << " um" << G4endl;
+        markGeometryModifiedIfIdle();
     }
     else if (command == fCrystalSigmaAlphaCmd) {
         g_crystal_sigma_alpha = fCrystalSigmaAlphaCmd->GetNewDoubleValue(newValue);
         G4cout << "=== Parameter Update ===" << G4endl;
         G4cout << "Crystal sigma_alpha set to: " << g_crystal_sigma_alpha << " rad" << G4endl;
         G4cout << "NOTE: Requires geometry rebuild if already initialized." << G4endl;
+        markGeometryModifiedIfIdle();
     }
     else if (command == fSideContactCmd) {
         G4bool contact = fSideContactCmd->GetNewBoolValue(newValue);
@@ -254,12 +286,28 @@ void SiPINLCParameterMessenger::SetNewValue(G4UIcommand* command, G4String newVa
             G4cout << "=== Parameter Update ===" << G4endl;
             G4cout << "Side contact mode: AIR GAP (gap=" << g_gap_thickness/um << " um)" << G4endl;
         }
+        markGeometryModifiedIfIdle();
     }
     else if (command == fSideContactRatioCmd) {
         g_side_contact_ratio = fSideContactRatioCmd->GetNewDoubleValue(newValue);
         G4cout << "=== Parameter Update ===" << G4endl;
         G4cout << "Side contact ratio (probabilistic): " << g_side_contact_ratio << G4endl;
         G4cout << "NOTE: Takes effect immediately (stepping logic), no geometry rebuild needed." << G4endl;
+    }
+    else if (command == fRebuildGeometryCmd) {
+        G4cout << "=== Geometry Rebuild ===" << G4endl;
+        if (auto* rm = G4RunManager::GetRunManager()) {
+            rm->ReinitializeGeometry(true);
+            G4cout << "Geometry rebuilt via G4RunManager::ReinitializeGeometry(true)." << G4endl;
+            G4cout << "NOTE: If you are using visualization, the old scene model may be removed." << G4endl;
+            G4cout << "      Recommended UI sequence after rebuild:" << G4endl;
+            G4cout << "        /run/initialize" << G4endl;
+            G4cout << "        /vis/drawVolume" << G4endl;
+            G4cout << "        /vis/viewer/flush" << G4endl;
+            G4cout << "NOTE: Do NOT call /run/reinitializeGeometry again after this; it is redundant." << G4endl;
+        } else {
+            G4cerr << "ERROR: G4RunManager not available; cannot rebuild geometry." << G4endl;
+        }
     }
     // Material parameters
     else if (command == fAbsorptionScaleCmd) {

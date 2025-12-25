@@ -9,9 +9,13 @@
 #
 # Run menu :
 /gui/addMenu run Run
+/gui/addButton run "initialize (after rebuild)" "/run/initialize"
 /gui/addButton run "beamOn 1" "/run/beamOn 1"
 /gui/addButton run "beamOn 10" "/run/beamOn 10"
 /gui/addButton run "beamOn 100" "/run/beamOn 100"
+/gui/addButton run "Rebuild geometry" "/SiPINLC/geometry/rebuild"
+/gui/addButton run "Vis refresh after rebuild" "/control/execute vis_after_rebuild.mac"
+/gui/addButton run "Apply geometry + redraw (after parameter change)" "/control/execute apply_geometry_and_redraw.mac"
 #
 # Gun menu :
 /gui/addMenu gun Gun
@@ -36,6 +40,7 @@
 /gui/addMenu viewer Viewer
 /gui/addButton viewer "Set style surface" "/vis/viewer/set/style surface"
 /gui/addButton viewer "Set style wireframe" "/vis/viewer/set/style wireframe"
+/gui/addButton viewer "Redraw geometry (/vis/drawVolume)" "/vis/drawVolume"
 /gui/addButton viewer "Refresh viewer" "/vis/viewer/refresh"
 /gui/addButton viewer "Update viewer (interaction or end-of-file)" "/vis/viewer/update"
 /gui/addButton viewer "Flush viewer (= refresh + update)" "/vis/viewer/flush"
